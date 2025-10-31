@@ -13,7 +13,7 @@ endif()
 file(GLOB_RECURSE headers "include/*.hpp")
 file(GLOB_RECURSE source "src/*.cpp")
 
-add_executable(banker ${source} ${headers} main.cpp)
+add_executable(banker ${source} ${headers})
 
 target_include_directories(banker PRIVATE "${CMAKE_SOURCE_DIR}/include")
 
