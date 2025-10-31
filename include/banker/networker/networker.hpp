@@ -9,6 +9,7 @@
 
 namespace banker::networker
 {
+
 }
 
 #endif //BANKER_NETWORKER_HPP
