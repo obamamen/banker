@@ -13,15 +13,20 @@ endif()
 file(GLOB_RECURSE headers "include/*.hpp")
 file(GLOB_RECURSE source "src/*.cpp")
 
-add_executable(banker ${source} ${headers})
-
-target_include_directories(banker PRIVATE "${CMAKE_SOURCE_DIR}/include")
-
 find_package(Threads REQUIRED)
-target_link_libraries(banker PRIVATE Threads::Threads)
 
-if(WIN32)
-    target_link_libraries(banker PRIVATE ws2_32)
-else()
-    target_link_libraries(banker PRIVATE pthread)
-endif()
+function(add_banker_variant target_name compile_def)
+    add_executable(${target_name} ${source} ${headers})
+    target_include_directories(${target_name} PRIVATE "${CMAKE_SOURCE_DIR}/include")
+    target_compile_definitions(${target_name} PRIVATE ${compile_def})
+    target_link_libraries(${target_name} PRIVATE Threads::Threads)
+
+    if(WIN32)
+        target_link_libraries(${target_name} PRIVATE ws2_32)
+    else()
+        target_link_libraries(${target_name} PRIVATE pthread)
+    endif()
+endfunction()
+
+add_banker_variant(banker_client BUILD_CLIENT)
+add_banker_variant(banker_server BUILD_SERVER)
