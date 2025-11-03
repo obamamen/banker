@@ -1,0 +1,50 @@
+#=============================================================================
+#  Banker Developer Documentation Configuration
+#=============================================================================
+PROJECT_NAME           = "Banker (Developer Docs)"
+PROJECT_BRIEF          = "..."
+OUTPUT_DIRECTORY       = docs/dev
+
+#=============================================================================
+#  INPUT / FILES
+#=============================================================================
+INPUT                  = ./src ./include
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.cpp *.h *.c
+
+#=============================================================================
+#  EXTRACTION SETTINGS
+#=============================================================================
+EXTRACT_ALL            = YES       # Extract everything, even undocumented
+EXTRACT_PRIVATE        = YES       # Include private members
+EXTRACT_STATIC         = YES       # Include static/internal functions
+EXTRACT_LOCAL_CLASSES  = YES
+HIDE_UNDOC_CLASSES     = NO
+HIDE_UNDOC_MEMBERS     = NO
+
+#=============================================================================
+#  HTML GENERATION
+#=============================================================================
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+HTML_OUTPUT            = html
+SEARCHENGINE           = YES
+FULL_PATH_NAMES        = YES
+
+#=============================================================================
+#  DOCUMENTATION STYLE
+#=============================================================================
+ALPHABETICAL_INDEX     = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+SHOW_INCLUDE_FILES     = YES
+TAB_SIZE               = 4
+QUIET                  = NO
+
+#=============================================================================
+#  WARNINGS / CLEANUP
+#=============================================================================
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = doxygen_dev.log

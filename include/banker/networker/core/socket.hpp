@@ -4,14 +4,16 @@
 
 #ifndef BANKER_SOCKET_HPP
 #define BANKER_SOCKET_HPP
+
 #include <numeric>
+#include "../../debug_inspector.hpp"
 
 #ifdef _WIN32
     #include <winsock2.h> // core socket handler
     #include <ws2tcpip.h> // inet_pton(), inet_ntop(), ipv6 support, DNS info
     typedef SOCKET socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = INVALID_SOCKET;
-    constexpr int socket_error = SOCKET_ERROR;
+    constexpr int BANKER_SOCKET_ERROR = SOCKET_ERROR;
 #else
     #include <sys/socket.h>     // socket(), bind(), listen(), accept()
     #include <netinet/in.h>     // sockaddr_in, AF_INET, htons
@@ -23,7 +25,7 @@
     #include <sys/types.h>      // socklen_t fd_set
     typedef int socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = ( -1 );
-    constexpr int socket_error = ( -1 );
+    constexpr int BANKER_SOCKET_ERROR = ( -1 );
 #endif
 
 namespace banker::networker
@@ -32,34 +34,61 @@ namespace banker::networker
     {
     public:
         constexpr static socket_t invalid_socket = BANKER_INVALID_SOCKET;
+        constexpr static socket_t socket_error = BANKER_SOCKET_ERROR;
 
     public:
-        [[nodiscard]] bool is_initialized() const { return _socket != invalid_socket; }
+        //! @brief if the socket is valid.
+        //! @return true -> valid, false -> invalid.
+        [[nodiscard]] bool is_valid() const { return _socket != invalid_socket; }
 
+        //! @brief to file descriptor.
+        //! @return returns the underlying socket_t.
         [[nodiscard]] socket_t to_fd() const noexcept { return _socket; }
 
+        //! @brief socket ctor. can / should be used as default ctor.
+        //! @param socket socket fd (defaults to invalid).
+        //! @param domain which domain to use (AF_INET/ipv4 is default).
         explicit socket(const socket_t socket = BANKER_INVALID_SOCKET, const int domain = AF_INET)
             noexcept : _socket(socket), _domain(domain) { _initialize_platform(); }
 
+        //! @brief socket dtor.
+        //! @note attempts to close the socket multiple times if errors occur.
         ~socket() noexcept
         {
-            close();
+            constexpr int tries = 10;
+        SOCKET_DTOR_RETRY:
+            if (close() == socket::socket_error)
+            {
+                int trie = 0;
+                trie++;
+
+                std::cerr << "[socket] Warning: failed to close socket on socket dtor" +
+                    INSPECT(INSPECT_V(_socket),INSPECT_V(_domain),INSPECT_V(trie))
+                << std::endl;
+
+                if (trie <= tries) goto SOCKET_DTOR_RETRY;
+
+            }
         }
 
+        //! @brief deleted copy constructor.
         socket(const socket&) = delete;
+
+        //! @brief deleted copy assignment.
         socket& operator=(const socket&) = delete;
 
+        //! @brief move constructor. transfers ownership of the socket.
         socket(socket&& other) noexcept
             : _socket(other._socket), _domain(other._domain)
         {
             other._socket = invalid_socket;
         }
 
+        //! @brief move assignment operator. transfers ownership of the socket.
         socket& operator=(socket&& other) noexcept
         {
             if (this != &other)
             {
-                close();
                 _socket = other._socket;
                 _domain = other._domain;
                 other._socket = invalid_socket;
@@ -67,19 +96,29 @@ namespace banker::networker
             return *this;
         }
 
-        bool create(
+        //! @brief constructs the socket class.
+        //! @param domain which domain to use (AF_INET/ipv4 is default).
+        //! @param type which type to use (SOCK_STREAM for TCP, SOCK_DGRAM for UDP)
+        //! @param protocol what protocol to use (IPPROTO_TCP, IPPROTO_UDP)
+        //!     Pass 0 to use the default protocol for the given type.
+        //! @return true -> succeeded, false -> failed.
+        [[nodiscard]] bool create(
             const int domain = AF_INET,
             const int type = SOCK_STREAM,
             const int protocol = 0) noexcept
         {
             _socket = ::socket(domain, type, protocol);
             _domain = domain;
-            return is_initialized();
+            return is_valid();
         }
 
-        bool connect(const std::string& host, const u_short port)
+        //! @brief connects client socket to server.
+        //! @param host the server hostname or IP address to connect to (e.g., "127.0.0.1").
+        //! @param port the port number on the server to connect to
+        //! @return true -> succeeded, false -> failed.
+        [[nodiscard]] bool connect(const std::string& host, const u_short port) const
         {
-            if (!is_initialized())
+            if (!is_valid())
             {
                 return false;
             }
@@ -98,7 +137,11 @@ namespace banker::networker
             return ::connect(_socket, reinterpret_cast<sockaddr *>(&local_addr), sizeof(local_addr)) != socket_error;
         }
 
-        bool bind(const u_short port, const std::string& ip = "127.0.0.1") const
+        //! @brief binds the socket to a specific IP address and port on the local machine.
+        //! @param port the local port to bind the socket to.
+        //! @param ip the local IP address to bind to (default is "127.0.0.1").
+        //! @return true -> succeeded, false -> failed.
+        [[nodiscard]] bool bind(const u_short port, const std::string& ip = "127.0.0.1") const
         {
             sockaddr_in local_addr{};
             local_addr.sin_family = _domain;
@@ -106,14 +149,17 @@ namespace banker::networker
 #ifdef _WIN32
             local_addr.sin_addr.s_addr = inet_addr(ip.c_str());
 #else
-            inet_pton(_domain, addr.c_str(), &local_addr.sin_addr);
+            inet_pton(_domain, ip.c_str(), &local_addr.sin_addr);
 #endif
             return (::bind(_socket, reinterpret_cast<sockaddr*>(&local_addr), sizeof(local_addr)) >= 0);
         }
 
-        bool set_blocking(bool blocking = false)
+        //! @brief sets the sockets blocking flag.
+        //! @param blocking if true -> blocks (socket default) if false -> non-blocking (function default).
+        //! @return true -> succeeded, false -> failed.
+        [[nodiscard]] bool set_blocking(bool blocking = false) const
         {
-            if (!is_initialized()) return false;
+            if (!is_valid()) return false;
 
 #ifdef _WIN32
             unsigned long mode = blocking ? 0 : 1;
@@ -126,12 +172,18 @@ namespace banker::networker
 #endif
         }
 
-        bool listen(const int backlog = 1) const
+        //! @brief puts the socket into listening mode to accept incoming client connections.
+        //! @param backlog the maximum number of pending connections the queue can hold.
+        //! @return true -> succeeded, false -> failed.
+        [[nodiscard]] bool listen(const int backlog = 1) const
         {
             return ::listen(_socket, backlog) >= 0;
         }
 
-        socket accept() const
+        //! @brief accepts an incoming client connection.
+        //! @return a new `socket` object representing the accepted client connection.
+        //!         if no connection is available or an error occurs, the returned socket WILL be uninitialized.
+        [[nodiscard]] socket accept() const
         {
             sockaddr_storage client_addr{};
             socklen_t len = sizeof(client_addr);
@@ -142,28 +194,61 @@ namespace banker::networker
             return socket(client_fd, _domain);
         }
 
-
-        int send(const void* data, const size_t len)
+        //! @brief sends data through the socket to the host.
+        //! @param data pointer to a byte in the buffer (should be start).
+        //! @param len the number of bytes to send counted from the data pointer (should be buffer length).
+        //! @return the number of bytes actually sent, or a negative value if an error occurred.
+        [[nodiscard]] int send(const void* data, const size_t len) const
         {
             const int n = ::send(_socket, static_cast<const char*>(data), static_cast<int>(len), 0);
             return n;
         }
 
-        int recv(void* buffer, const size_t len) const
+        //! @brief receives data from the connected host.
+        //! @param buffer pointer to the buffer where received data will be stored.
+        //! @param len maximum number of bytes to receive into the buffer.
+        //! @return the number of bytes actually received, 0 if the connection was closed,
+        //!         or a negative value if an error occurred.
+        [[nodiscard]] int recv(void* buffer, const size_t len) const
         {
             const int n = ::recv(_socket, static_cast<char*>(buffer), static_cast<int>(len), 0);
             return n;
         }
 
-        void close()
+        //! @brief closes the socket and releases any system resources associated with it.
+        //! @return the result of the underlying system call. (should almost never fail)
+        //!       @code
+        //!       if (socket.close() == socket::socket_error)
+        //!       {
+        //!           std::cerr << "Failed to close socket\n";
+        //!       }
+        //!       @endcode
+        [[nodiscard]] int close()
         {
-            if (is_initialized()) { close_socket(_socket); }
+            int value = -1;
+            if (is_valid()) { value = _close_socket(_socket); }
             _socket = BANKER_INVALID_SOCKET;
+            return value;
         }
 
-        bool set_reuse_address()
+        //! @brief enables or disables the SO_REUSEADDR.
+        //! This allows the socket to bind to a local address/port that might still be in the TIME_WAIT state,
+        //!     which is especially useful for quickly restarting a server.
+        //! @param enable which option to use.
+        //! @return true -> succeeded, false -> failed.
+        //! @note this function should be used right after socket creation.
+        //! @code
+        //! socket.create();
+        //! if (!socket.set_reuse_address(true))
+        //! {
+        //!     std::cerr << "Failed to set SO_REUSEADDR\n";
+        //! }
+        //! socket.bind(8080);
+        //! socket.listen();
+        //! @endcode
+        [[nodiscard]] bool set_reuse_address(const bool enable = true) const
         {
-            int opt = 1;
+            int opt = enable ? 1 : 0;
 #ifdef _WIN32
             return setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt)) == 0;
 #else
@@ -171,7 +256,9 @@ namespace banker::networker
 #endif
         }
 
-        std::string to_string() const
+        //! @brief gets the string based representation of the internal socket. (don't try constructing `socket_t` from this)
+        //! @return a newly created string that represents the internal socket.
+        [[nodiscard]] std::string to_string() const
         {
             return { std::to_string(_socket) };
         }
@@ -196,11 +283,12 @@ namespace banker::networker
 #endif
         }
 
-        static void close_socket(socket_t s) {
+        static int _close_socket(socket_t s)
+        {
 #ifdef _WIN32
-            closesocket(s);
+            return closesocket(s);
 #else
-            close(s);
+            return ::close(s);
 #endif
         }
     };

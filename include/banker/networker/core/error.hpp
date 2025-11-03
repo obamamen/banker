@@ -14,6 +14,7 @@
 
 namespace banker::networker
 {
+    //! @brief system nonspecific socket error code
     enum class socket_error_code
     {
         none,               // operation succeeded
@@ -28,9 +29,12 @@ namespace banker::networker
         unknown             // unknown/error
     };
 
-        inline socket_error_code get_last_socket_error() {
+    //! @brief gets the last error code regarding sockets.
+    //! @return collected and created socket error code.
+    inline socket_error_code get_last_socket_error()
+    {
 #ifdef _WIN32
-        switch (WSAGetLastError())
+        switch ( WSAGetLastError() )
         {
             case 0:                 return socket_error_code::none;
             case WSAEWOULDBLOCK:    return socket_error_code::no_data;
@@ -44,7 +48,7 @@ namespace banker::networker
             default:                return socket_error_code::unknown;
         }
 #else
-        switch (errno)
+        switch ( errno )
             {
             case 0:                 return socket_error_code::none;
             case EWOULDBLOCK:
@@ -64,9 +68,13 @@ namespace banker::networker
 #endif
     }
 
+    //! turn a socket error code into a human-readable string.
+    //! @param err the error in question.
+    //! @return the const string, not advisable to change value.
     inline const char* to_string(const socket_error_code err)
     {
-        switch (err) {
+        switch (err)
+        {
             case socket_error_code::none:            return "none";
             case socket_error_code::no_data:         return "no_data";
             case socket_error_code::refused:         return "refused";

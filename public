@@ -1,0 +1,57 @@
+#=============================================================================
+#  Banker Public API Documentation Configuration
+#=============================================================================
+PROJECT_NAME           = "Banker (Public API)"
+PROJECT_BRIEF          = "..."
+OUTPUT_DIRECTORY       = docs/public
+
+#=============================================================================
+#  INPUT / FILES
+#=============================================================================
+INPUT                  = ./include
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.h
+EXCLUDE_PATTERNS       = */tests/* */examples/* */internal/*
+
+#=============================================================================
+#  EXTRACTION SETTINGS
+#=============================================================================
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO       # Hide private members
+EXTRACT_STATIC         = NO       # Hide static/internal functions
+EXTRACT_LOCAL_CLASSES  = NO
+HIDE_UNDOC_CLASSES     = YES
+HIDE_UNDOC_MEMBERS     = YES
+INLINE_SIMPLE_STRUCTS  = YES
+SORT_MEMBER_DOCS       = YES
+
+#=============================================================================
+#  HTML GENERATION
+#=============================================================================
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE_HUE    = 210
+HTML_COLORSTYLE_SAT    = 180
+HTML_COLORSTYLE_GAMMA  = 80
+SEARCHENGINE           = YES
+FULL_PATH_NAMES        = NO
+
+#=============================================================================
+#  DOCUMENTATION STYLE
+#=============================================================================
+ALPHABETICAL_INDEX     = YES
+USE_MDFILE_AS_MAINPAGE = README.md
+SHOW_FILES             = NO
+SHOW_NAMESPACES        = YES
+SHOW_INCLUDE_FILES     = NO
+TAB_SIZE               = 4
+QUIET                  = NO
+
+#=============================================================================
+#  WARNINGS / CLEANUP
+#=============================================================================
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = doxygen_public.log

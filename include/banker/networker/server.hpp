@@ -21,6 +21,9 @@ namespace banker::networker
         server() noexcept = default;
         ~server() noexcept = default;
 
+        //! @brief server ctor
+        //! @param port which port to host on
+        //! @param out where to debug info to, set to nullptr to disable
         explicit server(const u_short port, std::ostream& out = std::cerr)
         {
             if (!_socket.create())
@@ -68,10 +71,10 @@ namespace banker::networker
             while (true)
             {
                 auto c = _socket.accept();
-                if (c.is_initialized())
+                if (c.is_valid())
                 {
                     std::cout << "[server] accepted " << c.to_string() << std::endl;
-                    c.set_blocking(false);
+                    auto _ = c.set_blocking(false);
                     _clients.emplace_back(std::move(c));
                 } else
                 {
@@ -84,6 +87,11 @@ namespace banker::networker
         socket _socket;
         std::vector<socket> _clients;
     public:
+        //! @brief function to gather all the readable and writable sockets.
+        //! @param sockets array of all accepted clients
+        //! @param readable OUT array of all the readable socket idxs
+        //! @param writable OUT array of all the writable socket idxs
+        //! @param timeout_ms how long the selecting lasts
         static inline void poll_sockets(
             const std::vector<socket>& sockets,
             std::vector<size_t>& readable,
@@ -102,7 +110,7 @@ namespace banker::networker
             socket_t max_fd = 0;
             for (auto& s : sockets)
             {
-                if (!s.is_initialized()) continue;
+                if (!s.is_valid()) continue;
                 FD_SET(s.to_fd(), &read_fds);
                 FD_SET(s.to_fd(), &write_fds);
                 if (s.to_fd() > max_fd) max_fd = s.to_fd();
@@ -120,7 +128,7 @@ namespace banker::networker
 
             for (size_t i = 0; i < sockets.size(); ++i) {
                 const auto& s = sockets[i];
-                if (!s.is_initialized()) continue;
+                if (!s.is_valid()) continue;
                 if (FD_ISSET(s.to_fd(), &read_fds))  readable.push_back(i);
                 if (FD_ISSET(s.to_fd(), &write_fds)) writable.push_back(i);
             }
