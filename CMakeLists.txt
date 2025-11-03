@@ -11,7 +11,7 @@ else()
 endif()
 
 file(GLOB_RECURSE headers "include/*.hpp")
-file(GLOB_RECURSE source "src/*.cpp")
+file(GLOB_RECURSE source "src/*.cpp" "src/*.c")
 
 find_package(Threads REQUIRED)
 
