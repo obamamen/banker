@@ -7,13 +7,20 @@
 #include <numeric>
 
 #ifdef _WIN32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
+    #include <winsock2.h> // core socket handler
+    #include <ws2tcpip.h> // inet_pton(), inet_ntop(), ipv6 support, DNS info
     typedef SOCKET socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = INVALID_SOCKET;
     constexpr int socket_error = SOCKET_ERROR;
 #else
-    #include <sys/socket.h>
+    #include <sys/socket.h>     // socket(), bind(), listen(), accept()
+    #include <netinet/in.h>     // sockaddr_in, AF_INET, htons
+    #include <arpa/inet.h>      // inet_pton(), inet_ntop()
+    #include <unistd.h>         // close(), read(), write()
+    #include <fcntl.h>          // fcntl() (non blocking)
+    #include <errno.h>          // errno
+    #include <sys/time.h>       // timeval
+    #include <sys/types.h>      // socklen_t fd_set
     typedef int socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = ( -1 );
     constexpr int socket_error = ( -1 );
@@ -27,7 +34,9 @@ namespace banker::networker
         constexpr static socket_t invalid_socket = BANKER_INVALID_SOCKET;
 
     public:
-        bool is_initialized() const { return _socket != invalid_socket; }
+        [[nodiscard]] bool is_initialized() const { return _socket != invalid_socket; }
+
+        [[nodiscard]] socket_t to_fd() const noexcept { return _socket; }
 
         explicit socket(const socket_t socket = BANKER_INVALID_SOCKET, const int domain = AF_INET)
             noexcept : _socket(socket), _domain(domain) { _initialize_platform(); }
@@ -39,6 +48,24 @@ namespace banker::networker
 
         socket(const socket&) = delete;
         socket& operator=(const socket&) = delete;
+
+        socket(socket&& other) noexcept
+            : _socket(other._socket), _domain(other._domain)
+        {
+            other._socket = invalid_socket;
+        }
+
+        socket& operator=(socket&& other) noexcept
+        {
+            if (this != &other)
+            {
+                close();
+                _socket = other._socket;
+                _domain = other._domain;
+                other._socket = invalid_socket;
+            }
+            return *this;
+        }
 
         bool create(
             const int domain = AF_INET,
@@ -82,7 +109,21 @@ namespace banker::networker
             inet_pton(_domain, addr.c_str(), &local_addr.sin_addr);
 #endif
             return (::bind(_socket, reinterpret_cast<sockaddr*>(&local_addr), sizeof(local_addr)) >= 0);
+        }
 
+        bool set_blocking(bool blocking = false)
+        {
+            if (!is_initialized()) return false;
+
+#ifdef _WIN32
+            unsigned long mode = blocking ? 0 : 1;
+            return (ioctlsocket(_socket, FIONBIO, &mode) == 0);
+#else
+            int flags = fcntl(_socket, F_GETFL, 0);
+            if (flags == -1) return false;
+            flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+            return (fcntl(_socket, F_SETFL, flags) == 0);
+#endif
         }
 
         bool listen(const int backlog = 1) const

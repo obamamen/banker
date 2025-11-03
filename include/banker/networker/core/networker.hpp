@@ -6,10 +6,12 @@
 #define BANKER_NETWORKER_HPP
 
 #include "socket.hpp"
+#include "error.hpp"
+
+#include <vector>
 
 namespace banker::networker
 {
-
 }
 
 #endif //BANKER_NETWORKER_HPP
