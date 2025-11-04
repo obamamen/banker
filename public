@@ -8,7 +8,7 @@ OUTPUT_DIRECTORY       = docs/public
 #=============================================================================
 #  INPUT / FILES
 #=============================================================================
-INPUT                  = ./include
+INPUT                  = ./include README.md
 RECURSIVE              = YES
 FILE_PATTERNS          = *.hpp *.h
 EXCLUDE_PATTERNS       = */tests/* */examples/* */internal/*

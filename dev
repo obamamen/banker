@@ -8,7 +8,7 @@ OUTPUT_DIRECTORY       = docs/dev
 #=============================================================================
 #  INPUT / FILES
 #=============================================================================
-INPUT                  = ./src ./include
+INPUT                  = ./src ./include README.md
 RECURSIVE              = YES
 FILE_PATTERNS          = *.hpp *.cpp *.h *.c
 
