@@ -1,13 +1,18 @@
+#include <fstream>
 #include <iostream>
 #include <thread>
 
 #include "banker/banker.hpp"
 #include "../include/banker/networker/core/socket.hpp"
 #include "../include/banker/networker/client.hpp"
+#include "banker/crypto/format_bytes.hpp"
 #include "banker/networker/server.hpp"
 
 #include "banker/monocypher/monocypher.h"
 #include "banker/monocypher/monocypher-ed25519.h"
+
+#include "banker/common/rng/crypto_rng.hpp"
+#include "banker/common/time/timers.hpp"
 
 using namespace banker;
 
@@ -55,12 +60,26 @@ void test_handshake()
 
 void server()
 {
-    networker::server server(8080);
-    while (true)
+    uint8_t rng[32] = {};
+    crypto_rng::get(rng);
+    std::cout << banker::format_bytes::to_hex(rng);
+
+    constexpr size_t rng2_l = 1024*1024*4;
+    const auto rng2 = new uint8_t[rng2_l];
     {
-        server.accept_backlog();
-        server.log_resv();
+        time::scoped_timer t("RNG2 GENERATOR",true);
+        crypto_rng::get_bytes(rng2, rng2_l);
     }
+
+    {
+        time::scoped_timer t("RNG2 TO FILE",true);
+        const std::string hex_output = banker::format_bytes::to_hex_bytes(rng2, rng2_l);
+
+        std::ofstream out("rng_output.txt", std::ios::out | std::ios::trunc);
+        out << hex_output;
+    }
+
+    delete[] rng2;
 }
 
 void client()

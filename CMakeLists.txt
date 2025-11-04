@@ -22,7 +22,7 @@ function(add_banker_variant target_name compile_def)
     target_link_libraries(${target_name} PRIVATE Threads::Threads)
 
     if(WIN32)
-        target_link_libraries(${target_name} PRIVATE ws2_32)
+        target_link_libraries(${target_name} PRIVATE ws2_32 bcrypt)
     else()
         target_link_libraries(${target_name} PRIVATE pthread)
     endif()

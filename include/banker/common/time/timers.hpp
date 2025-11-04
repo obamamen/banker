@@ -1,0 +1,68 @@
+//
+// Created by moosm on 11/4/2025.
+//
+
+#ifndef BANKER_TIMERS_HPP
+#define BANKER_TIMERS_HPP
+
+#include <chrono>
+#include <iostream>
+#include <ostream>
+#include <string>
+
+namespace banker::time
+{
+    class scoped_timer
+    {
+    private:
+        std::string name;
+        std::chrono::high_resolution_clock::time_point start_time;
+        std::ostream& stream = std::cout;
+        bool log = true;
+
+    public:
+        explicit scoped_timer(std::string name, const bool do_log = false,std::ostream& stream = std::cout)
+            : name(std::move(name)), stream(stream), log(do_log)
+        {
+            start_time = std::chrono::high_resolution_clock::now();
+            if (log)
+            {
+                stream << "[" << this->name << "] started" << std::endl;
+            }
+        }
+
+        explicit scoped_timer() : log(false)
+        {
+            start_time = std::chrono::high_resolution_clock::now();
+        }
+
+        scoped_timer(const scoped_timer&) = delete;
+        scoped_timer(scoped_timer&&) = delete;
+        scoped_timer& operator=(const scoped_timer&) = delete;
+        scoped_timer& operator=(scoped_timer&&) = delete;
+
+        ~scoped_timer()
+        {
+            if (log)
+            {
+                const auto end_time = std::chrono::high_resolution_clock::now();
+                const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                stream << "[" << name << "] completed in " << duration.count() << " ms" << std::endl;
+            }
+        }
+
+        void do_log(const bool do_log = false)
+        {
+            log = do_log;
+        }
+
+        unsigned long long ms()
+        {
+            const auto end_time = std::chrono::high_resolution_clock::now();
+            const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+            return duration.count();
+        }
+    };
+}
+
+#endif //BANKER_TIMERS_HPP

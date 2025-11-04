@@ -55,19 +55,20 @@ namespace banker::networker
         //! @note attempts to close the socket multiple times if errors occur.
         ~socket() noexcept
         {
-            constexpr int tries = 10;
-        SOCKET_DTOR_RETRY:
-            if (close() == socket::socket_error)
+            // when socket.accept is called with no backlog it will return default ctor socket.
+            // this will cause closing of invalid socket.
+            if (is_valid() == false) return;
+
+
+            for (int trie = 0; trie < 5; trie++)
             {
-                int trie = 0;
-                trie++;
-
-                std::cerr << "[socket] Warning: failed to close socket on socket dtor" +
-                    INSPECT(INSPECT_V(_socket),INSPECT_V(_domain),INSPECT_V(trie))
-                << std::endl;
-
-                if (trie <= tries) goto SOCKET_DTOR_RETRY;
-
+                if (close() == socket::socket_error)
+                {
+                    std::cerr << "[socket] Warning: failed to close socket on socket dtor" +
+                        INSPECT(INSPECT_V(_socket),INSPECT_V(_domain),INSPECT_V(trie))
+                    << std::endl;
+                }
+                else { break; }
             }
         }
 
