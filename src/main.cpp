@@ -14,6 +14,8 @@
 #include "banker/common/rng/crypto_rng.hpp"
 #include "banker/common/time/timers.hpp"
 
+#include "banker/networker/core/packet.hpp"
+
 using namespace banker;
 
 void test_handshake()
@@ -58,23 +60,37 @@ void test_handshake()
         printf("Handshake FAILED! Keys differ.\n");
 }
 
+struct packet_test_1
+{
+    int x;
+    int y;
+};
+
 void server()
 {
-    constexpr size_t rng2_l = 1024;
-    const auto rng2 = new uint8_t[rng2_l];
+    networker::packet p;
+    const std::vector<std::vector<std::string>> data = {{"a","b"},{"c", "d"}};
+    const std::vector<packet_test_1> data2 = {{0,0},{1,1},{100000000,1000000}};
+    p.write(data);
+    p.write(data2);
+
+    auto v = p.read<std::vector<std::vector<std::string>>>();
+    for (auto i : v)
     {
-        time::scoped_timer t("RNG2 GENERATOR",true);
-        crypto_rng::get_bytes(rng2, rng2_l);
+        for (auto ii : i)
+        {
+            std::cout << ii << ' ';
+        }
+        std::cout << std::endl;
     }
 
+    auto v2 = p.read<std::vector<packet_test_1>>();
+    for (auto packet : v2)
     {
-        time::scoped_timer t("RNG2 TO FILE",true);
-
-        std::ofstream out("rng_output.txt", std::ios::out | std::ios::trunc);
-        banker::format_bytes::to_hex_bytes_stream(rng2, rng2_l, out);
+        std::cout << "{" << packet.x << ", " << packet.y << "}" << std::endl;
     }
 
-    delete[] rng2;
+    auto v3_underflow = p.read<char>();
 }
 
 void client()

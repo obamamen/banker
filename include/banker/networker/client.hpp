@@ -16,16 +16,16 @@ namespace banker::networker
     class client
     {
     public:
-        //! @brief if the underlying socket is valid
+        /// @brief if the underlying socket is valid
         [[nodiscard]] bool is_valid() const noexcept { return _socket.is_valid(); }
 
         client() noexcept = default;
         ~client() noexcept = default;
 
-        //! @brief client ctor
-        //! @param host ip address host
-        //! @param port port host
-        //! @param out where to debug info to, set to nullptr to disable
+        /// @brief client ctor
+        /// @param host ip address host
+        /// @param port port host
+        /// @param out where to debug info to, set to nullptr to disable
         client(const std::string& host, const u_short port, std::ostream& out = std::cerr)
         {
             if (!_socket.create())

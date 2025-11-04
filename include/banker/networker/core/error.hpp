@@ -14,7 +14,7 @@
 
 namespace banker::networker
 {
-    //! @brief system nonspecific socket error code
+    /// @brief system nonspecific socket error code
     enum class socket_error_code
     {
         none,               // operation succeeded
@@ -29,8 +29,8 @@ namespace banker::networker
         unknown             // unknown/error
     };
 
-    //! @brief gets the last error code regarding sockets.
-    //! @return collected and created socket error code.
+    /// @brief gets the last error code regarding sockets.
+    /// @return collected and created socket error code.
     inline socket_error_code get_last_socket_error()
     {
 #ifdef _WIN32
@@ -68,9 +68,9 @@ namespace banker::networker
 #endif
     }
 
-    //! turn a socket error code into a human-readable string.
-    //! @param err the error in question.
-    //! @return the const string, not advisable to change value.
+    /// turn a socket error code into a human-readable string.
+    /// @param err the error in question.
+    /// @return the const string, not advisable to change value.
     inline const char* to_string(const socket_error_code err)
     {
         switch (err)

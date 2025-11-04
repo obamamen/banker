@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string>
 #include <bitset>
-#include <stdint.h>
+#include <cstdint>
 
 namespace banker::format_bytes
 {
