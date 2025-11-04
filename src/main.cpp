@@ -60,11 +60,7 @@ void test_handshake()
 
 void server()
 {
-    uint8_t rng[32] = {};
-    crypto_rng::get(rng);
-    std::cout << banker::format_bytes::to_hex(rng);
-
-    constexpr size_t rng2_l = 1024*1024*4;
+    constexpr size_t rng2_l = 1024 * 1024 * 512;
     const auto rng2 = new uint8_t[rng2_l];
     {
         time::scoped_timer t("RNG2 GENERATOR",true);
@@ -73,10 +69,9 @@ void server()
 
     {
         time::scoped_timer t("RNG2 TO FILE",true);
-        const std::string hex_output = banker::format_bytes::to_hex_bytes(rng2, rng2_l);
 
         std::ofstream out("rng_output.txt", std::ios::out | std::ios::trunc);
-        out << hex_output;
+        banker::format_bytes::to_hex_bytes_stream(rng2, rng2_l, out);
     }
 
     delete[] rng2;

@@ -5,6 +5,7 @@
 #ifndef BANKER_FORMAT_BYTES_HPP
 #define BANKER_FORMAT_BYTES_HPP
 
+#include <array>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -13,23 +14,80 @@
 
 namespace banker::format_bytes
 {
+    constexpr std::array<std::array<char, 2>, 256> make_hex_table()
+    {
+        std::array<std::array<char, 2>, 256> table{};
+        for (std::size_t i = 0; i < 256; ++i)
+        {
+            constexpr char hex_chars[] = "0123456789abcdef";
+            table[i][0] = hex_chars[i >> 4];
+            table[i][1] = hex_chars[i & 0xF];
+        }
+        return table;
+    }
+
+    inline constexpr auto hex_table = make_hex_table();
+
     inline std::string to_hex_bytes(
         const unsigned char* bytes,
         const size_t len,
         const std::string& separator = "",
         const size_t width = 1)
     {
-        std::ostringstream oss;
-        oss << std::hex << std::setfill('0');
+        std::ostringstream oss_local;
+        std::ostream& out = oss_local;
+
+        out << std::hex << std::setfill('0');
 
         for (size_t i = 0; i < len; ++i)
         {
             const bool do_sep = (i != len - 1) && ((i + 1) % width == 0);
-            oss << std::setw(2) << static_cast<uint16_t>(bytes[i]);
-            if (do_sep) oss << separator;
+            out << std::setw(2) << static_cast<uint16_t>(bytes[i]);
+            if (do_sep) out << separator;
+        }
+        return oss_local.str();
+    }
+
+    inline void to_hex_bytes_stream(
+    const uint8_t* bytes,
+    const size_t len,
+    std::ostream& out,
+    const std::string& separator = "",
+    size_t width = 0)
+    {
+        if (width == 0 || width > len) width = len;
+
+        constexpr size_t MAX_CHUNK_BYTES = 64 * 1024;
+
+        if (len <= MAX_CHUNK_BYTES && width == len)
+        {
+            for (size_t i = 0; i < len; ++i)
+                out.write(hex_table[bytes[i]].data(), 2);
+            return;
         }
 
-        return oss.str();
+        size_t pos = 0;
+        while (pos < len)
+        {
+            size_t chunk_bytes = (len - pos > MAX_CHUNK_BYTES) ? MAX_CHUNK_BYTES : (len - pos);
+            size_t chunk_width = (chunk_bytes < width) ? chunk_bytes : width;
+
+            std::vector<char> buf(chunk_width * 2);
+
+            for (size_t i = 0; i < chunk_width; ++i)
+            {
+                const auto& hex = hex_table[bytes[pos + i]];
+                buf[i * 2 + 0] = hex[0];
+                buf[i * 2 + 1] = hex[1];
+            }
+
+            out.write(buf.data(), chunk_width * 2);
+
+            if (!separator.empty() && pos + chunk_width < len)
+                out.write(separator.data(), separator.size());
+
+            pos += chunk_width;
+        }
     }
 
 
