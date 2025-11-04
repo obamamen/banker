@@ -54,7 +54,7 @@
 #ifndef ED25519_H
 #define ED25519_H
 
-#include "monocypher.h"
+#include "monocypher.hpp"
 
 #ifdef MONOCYPHER_CPP_NAMESPACE
 namespace MONOCYPHER_CPP_NAMESPACE {

@@ -8,8 +8,8 @@
 #include "banker/crypto/format_bytes.hpp"
 #include "banker/networker/server.hpp"
 
-#include "banker/monocypher/monocypher.h"
-#include "banker/monocypher/monocypher-ed25519.h"
+#include "banker/monocypher/monocypher.hpp"
+#include "banker/monocypher/monocypher-ed25519.hpp"
 
 #include "banker/common/rng/crypto_rng.hpp"
 #include "banker/common/time/timers.hpp"
@@ -60,7 +60,7 @@ void test_handshake()
 
 void server()
 {
-    constexpr size_t rng2_l = 1024 * 1024 * 512;
+    constexpr size_t rng2_l = 1024;
     const auto rng2 = new uint8_t[rng2_l];
     {
         time::scoped_timer t("RNG2 GENERATOR",true);
