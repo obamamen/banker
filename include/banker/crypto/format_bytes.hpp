@@ -49,11 +49,11 @@ namespace banker::format_bytes
     }
 
     inline void to_hex_bytes_stream(
-    const uint8_t* bytes,
-    const size_t len,
-    std::ostream& out,
-    const std::string& separator = "",
-    size_t width = 0)
+        const uint8_t* bytes,
+        const size_t len,
+        std::ostream& out,
+        const std::string& separator = "",
+        size_t width = 0)
     {
         if (width == 0 || width > len) width = len;
 

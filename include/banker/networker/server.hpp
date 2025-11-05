@@ -16,6 +16,7 @@
 #include <ranges>
 #include <vector>
 
+#include "banker/common/formatting/header.hpp"
 #include "banker/crypto/crypter.hpp"
 #include "buildt_in/base_packets.hpp"
 #include "core/packet.hpp"
@@ -32,6 +33,7 @@ namespace banker::networker
         using on_disconnect_callback = std::function<void(client_id)>;
         using on_receive_callback = std::function<void(client_id, const packet&)>;
         using on_error_callback = std::function<void(client_id, const std::string&)>;
+        using on_internal_message_callback = std::function<void(const std::string&)>;
 
     private:
         struct internal_client
@@ -60,17 +62,19 @@ namespace banker::networker
         server() noexcept = delete;
         ~server() noexcept = default;
 
-        /// @brief server ctor
-        /// @param port which port to host on
-        /// @param out where to debug info to, set to nullptr to disable
-        explicit server(const u_short port, std::ostream& out = std::cerr)
+        /// @brief server ctor.
+        /// @param port which port to host on.
+        /// @param ip what ip to host on. ("127.0.0.1")
+        /// @param out where to debug info to, set to nullptr to disable.
+        explicit server(const u_short port, const std::string& ip = "127.0.0.1", std::ostream& out = std::cerr)
+            : _ip(ip), _port(port)
         {
             if (!_socket.create())
             {
                 out << "Failed to create server socket" << std::endl;
             }
 
-            if (!_socket.bind(port))
+            if (!_socket.bind(port, ip))
             {
                 out << "Failed to bind server socket " << INSPECT(
                     INSPECT_V(port)
@@ -112,6 +116,11 @@ namespace banker::networker
             _on_error = std::move(callback);
         }
 
+        void set_on_internal_message(on_internal_message_callback callback)
+        {
+            _on_internal_message = std::move(callback);
+        }
+
         void disconnect_client(const client_id client)
         {
             _disconnect_client(client);
@@ -129,9 +138,18 @@ namespace banker::networker
 
         [[noreturn]] void run()
         {
+            constexpr int width = 60;
+            constexpr char sides = '|';
+            common::formatting::print_divider(width,'=',"",sides);
+            common::formatting::print_divider(width, ' ',
+                common::formatting::format("server starting ", _ip, ":", _port),sides);
+            common::formatting::print_divider(width,'-',"",sides);
+            common::formatting::print_divider(width, ' '," ... ", sides);
+            common::formatting::print_divider(width,'=',"",sides);
             while (true)
             {
                 this->tick();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         }
 
@@ -155,8 +173,8 @@ namespace banker::networker
             wrapper.write(static_cast<uint8_t>(pt));
             wrapper.insert_bytes(pkt.get_data());
 
-            std::cout << "send " << base_packets::packet_type_from_server_to_string(pt) <<
-                " to " <<  client <<std::endl;
+            // std::cout << "send " << base_packets::packet_type_from_server_to_string(pt) <<
+            //     " to " <<  client <<std::endl;
 
             const auto serialized = wrapper.serialize();
             const int sent = c.client_socket.send(serialized.data(), serialized.size());
@@ -176,18 +194,17 @@ namespace banker::networker
 
                 uint8_t buffer[4096];
                 const int bytes = client.client_socket.recv(buffer, sizeof(buffer));
-                if (bytes == 0)
+                if (bytes <= 0)
                 {
                     _disconnect_client(id);
                     continue;
                 }
 
-                if (bytes < 0)
-                {
-                    if (_on_error) _on_error(id, "recv() failed");
-                    _disconnect_client(id);
-                    continue;
-                }
+                // if (bytes < 0)
+                // {
+                //     _disconnect_client(id);
+                //     continue;
+                // }
 
                 client.recv_buffer.insert(client.recv_buffer.end(), buffer, buffer + bytes);
 
@@ -209,9 +226,9 @@ namespace banker::networker
         {
             const auto pt = pkt.read<base_packets::packet_type_to_server>();
 
-            std::cout <<
-                "got " << base_packets::packet_type_to_server_to_string(pt)
-                << " from " << from << std::endl;
+            // std::cout <<
+            //     "got " << base_packets::packet_type_to_server_to_string(pt)
+            //     << " from " << from << std::endl;
 
             switch (pt)
             {
@@ -223,13 +240,18 @@ namespace banker::networker
                     _send_packet(from,p,base_packets::packet_type_from_server::requested_public_key);
                     _send_packet(from,{},base_packets::packet_type_from_server::request_public_key);
                 } break;
+
                 case base_packets::packet_type_to_server::requested_public_key:
                 {
                     _clients.at(from).handshake.generate_shared_secret(pkt.read<crypter::key>());
-                    std::cout
-                        << "between server and " << from << " secret = " <<
-                            format_bytes::to_hex(_clients.at(from).handshake.get_shared_secret())
-                        << std::endl;
+                    std::stringstream ss;
+
+                    if (_on_internal_message) ss << "established handshake with " << from <<
+                        " [" <<
+                            format_bytes::to_hex(_clients.at(from).handshake.get_shared_secret(),"-",4) <<
+                        "] ";
+
+                    if (_on_internal_message) _on_internal_message(ss.str());
                 } break;
                 default: ;
             }
@@ -355,6 +377,10 @@ namespace banker::networker
         on_disconnect_callback _on_disconnect = {};
         on_receive_callback _on_receive = {};
         on_error_callback _on_error = {};
+        on_internal_message_callback _on_internal_message = {};
+
+        const std::string _ip = "";
+        const int _port = -1;
     };
 }
 

@@ -48,7 +48,12 @@ namespace banker::networker
                 ) << std::endl;
                 return;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            if (!_socket.set_blocking())
+            {
+                if (out) out << "Failed to set blocking mode" << std::endl;
+            }
+
             auto _ = _send_packet({},base_packets::packet_type_to_server::request_public_key);
         }
 
