@@ -5,13 +5,14 @@
 #ifndef BANKER_PACKET_TYPES_HPP
 #define BANKER_PACKET_TYPES_HPP
 
-namespace banker::networker::internal_packets
+namespace banker::networker::base_packets
 {
     enum class packet_type_to_server
     {
         unknown = 0,
         public_key = 1,
         debug_msg, // std::string
+        user_defined, // through the on_recieved
     };
 
     enum class packet_type_from_server
@@ -19,6 +20,7 @@ namespace banker::networker::internal_packets
         unknown = 0,
         public_key = 1,
         debug_msg, // std::string
+        user_defined, // ...
     };
 }
 
