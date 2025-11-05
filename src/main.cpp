@@ -68,35 +68,47 @@ struct packet_test_1
 
 void server()
 {
-    networker::packet p;
-    const std::vector<std::vector<std::string>> data = {{"a","b"},{"c", "d"}};
-    const std::vector<packet_test_1> data2 = {{0,0},{1,1},{100000000,1000000}};
-    p.write(data);
-    p.write(data2);
+    auto server = networker::server(8080);
 
-    auto v = p.read<std::vector<std::vector<std::string>>>();
-    for (auto i : v)
-    {
-        for (auto ii : i)
+    server.set_on_connect(
+        [](const networker::server::client_id id)
         {
-            std::cout << ii << ' ';
+            std::cout << "Client " << id << " connected\n";
         }
-        std::cout << std::endl;
-    }
+    );
 
-    auto v2 = p.read<std::vector<packet_test_1>>();
-    for (auto packet : v2)
-    {
-        std::cout << "{" << packet.x << ", " << packet.y << "}" << std::endl;
-    }
+    server.set_on_disconnect(
+    [](const networker::server::client_id id)
+        {
+            std::cout << "Client " << id << " disconnected\n";
+        }
+    );
 
-    auto v3_underflow = p.read<char>();
+    server.set_on_receive([](const networker::server::client_id id, networker::packet packet)
+        {
+            std::cout << "Client " << id << " send: " << packet.read<std::string>() << std::endl;
+        }
+    );
+
+    server.set_on_error(
+    [](const networker::server::client_id id,std::string msg)
+        {
+            std::cout << "Client " << id << " error: " << msg << std::endl;
+        }
+    );
+
+    server.run();
 }
 
 void client()
 {
-    test_handshake();
     networker::client client = {"127.0.0.1", 8080};
+    networker::packet p{};
+    p.write(std::string("hello"));
+    client.send(p);
+    client.send(p);
+    p.clear();
+    client.send(p);
 }
 
 int main()

@@ -15,6 +15,42 @@ namespace banker::networker
     class packet
     {
     public:
+        /// @brief serializes the packet for sending (adds a 4-byte length prefix)
+        [[nodiscard]] std::vector<uint8_t> serialize() const
+        {
+            std::vector<uint8_t> buffer;
+            const auto len = static_cast<uint32_t>(_data.size());
+            const uint32_t net_len = htonl(len);
+            const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
+            buffer.insert(buffer.end(), len_ptr, len_ptr + sizeof(uint32_t));
+            buffer.insert(buffer.end(), _data.begin(), _data.end());
+            return buffer;
+        }
+
+        /// @brief tries to deserialize, returns {} if not valid packet
+        static packet deserialize(std::vector<uint8_t>& stream)
+        {
+            if (stream.size() < sizeof(uint32_t))
+                return {};
+
+            uint32_t len = 0;
+            std::memcpy(&len, stream.data(), sizeof(uint32_t));
+            len = ntohl(len);
+
+            if (stream.size() < sizeof(uint32_t) + len)
+                return {};
+
+            packet pkt;
+            pkt._data.insert(pkt._data.end(),
+                             stream.begin() + sizeof(uint32_t),
+                             stream.begin() + sizeof(uint32_t) + len);
+
+            stream.erase(stream.begin(),
+                         stream.begin() + sizeof(uint32_t) + len);
+
+            return pkt;
+        }
+
         /// @brief writes any copiable, string or vector to the packet.
         /// @tparam T the type to serialize.
         /// @param v the value to serialize.

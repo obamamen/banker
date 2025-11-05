@@ -10,6 +10,8 @@
 
 #include "core/socket.hpp"
 #include "../debug_inspector.hpp"
+#include "banker/crypto/format_bytes.hpp"
+#include "core/packet.hpp"
 
 namespace banker::networker
 {
@@ -40,14 +42,28 @@ namespace banker::networker
                     INSPECT_V(port)
                 ) << std::endl;
             }
-
-            const std::string message = "Hello World!";
-            auto _ = _socket.send(message.c_str(), message.size());
         }
 
         client(client&& other) noexcept
             : _socket(std::move(other._socket)) {}
+
         client& operator=(client&& other) noexcept { _socket = std::move(other._socket); return *this; }
+
+        void send(const packet& pkt) const
+        {
+            if (!_socket.is_valid())
+            {
+                std::cerr << "Cannot send — socket invalid\n";
+                return;
+            }
+
+            const auto serialized = pkt.serialize();
+            const int sent = _socket.send(serialized.data(), serialized.size());
+            if (sent <= 0)
+            {
+                std::cerr << "Send failed or connection closed\n";
+            }
+        }
 
     private:
         socket _socket;
