@@ -51,7 +51,7 @@
 // with this software.  If not, see
 // <https://creativecommons.org/publicdomain/zero/1.0/>
 
-#include "banker/monocypher/monocypher-ed25519.hpp"
+#include "banker/vendor/monocypher/monocypher-ed25519.hpp"
 
 #ifdef MONOCYPHER_CPP_NAMESPACE
 namespace MONOCYPHER_CPP_NAMESPACE {

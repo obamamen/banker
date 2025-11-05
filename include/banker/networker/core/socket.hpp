@@ -6,6 +6,8 @@
 #define BANKER_SOCKET_HPP
 
 #include <numeric>
+
+#include "error.hpp"
 #include "../../debug_inspector.hpp"
 
 #ifdef _WIN32
@@ -135,7 +137,10 @@ namespace banker::networker
             if (inet_pton(AF_INET, host.c_str(), &local_addr.sin_addr) <= 0) { return false; }
 #endif
 
-            return ::connect(_socket, reinterpret_cast<sockaddr *>(&local_addr), sizeof(local_addr)) != socket_error;
+            int connect =
+                ::connect(_socket, reinterpret_cast<sockaddr *>(&local_addr), sizeof(local_addr));
+
+            return (connect >= 0);
         }
 
         /// @brief binds the socket to a specific IP address and port on the local machine.

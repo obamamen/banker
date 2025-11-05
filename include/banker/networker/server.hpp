@@ -16,6 +16,8 @@
 #include <ranges>
 #include <vector>
 
+#include "banker/crypto/crypter.hpp"
+#include "buildt_in/base_packets.hpp"
 #include "core/packet.hpp"
 
 
@@ -35,9 +37,7 @@ namespace banker::networker
         struct internal_client
         {
             socket client_socket{};
-            uint8_t local_private_k[32]{};
-            uint8_t used_public_k[32]{};
-            uint8_t shared_private_k[32]{};
+            crypter::handshake handshake{};
             std::vector<uint8_t> recv_buffer;
             bool connected = false;
 
@@ -142,17 +142,26 @@ namespace banker::networker
         }
 
     private:
-        bool _send_packet(const client_id client, const packet& pkt)
+        bool _send_packet(
+            const client_id client,
+            const packet& pkt,
+            base_packets::packet_type_from_server pt = base_packets::packet_type_from_server::user_defined)
         {
             if (!_clients.contains(client)) return false;
             const auto &c = _clients[client];
             if (!c.connected) return false;
 
-            const auto serialized = pkt.serialize();
+            packet wrapper = {};
+            wrapper.write(static_cast<uint8_t>(pt));
+            wrapper.insert_bytes(pkt.get_data());
+
+            std::cout << "send " << base_packets::packet_type_from_server_to_string(pt) <<
+                " to " <<  client <<std::endl;
+
+            const auto serialized = wrapper.serialize();
             const int sent = c.client_socket.send(serialized.data(), serialized.size());
             return sent == static_cast<int>(serialized.size());
         }
-
 
         void _process_clients()
         {
@@ -191,10 +200,41 @@ namespace banker::networker
                         break;
                     }
 
-                    if (_on_receive)
-                        _on_receive(id, pkt);
+                    _handle_packet(id, pkt);
                 }
             }
+        }
+
+        void _handle_packet(const client_id from, packet& pkt)
+        {
+            const auto pt = pkt.read<base_packets::packet_type_to_server>();
+
+            std::cout <<
+                "got " << base_packets::packet_type_to_server_to_string(pt)
+                << " from " << from << std::endl;
+
+            switch (pt)
+            {
+                case base_packets::packet_type_to_server::request_public_key:
+                {
+                    packet p{};
+                    const crypter::handshake& handshake = _clients.at(from).handshake;
+                    p.write(handshake.get_public());
+                    _send_packet(from,p,base_packets::packet_type_from_server::requested_public_key);
+                    _send_packet(from,{},base_packets::packet_type_from_server::request_public_key);
+                } break;
+                case base_packets::packet_type_to_server::requested_public_key:
+                {
+                    _clients.at(from).handshake.generate_shared_secret(pkt.read<crypter::key>());
+                    std::cout
+                        << "between server and " << from << " secret = " <<
+                            format_bytes::to_hex(_clients.at(from).handshake.get_shared_secret())
+                        << std::endl;
+                } break;
+                default: ;
+            }
+
+            if (_on_receive && pt == base_packets::packet_type_to_server::user_defined) _on_receive(from, pkt);
         }
 
         void _accept_backlog()
@@ -217,6 +257,7 @@ namespace banker::networker
         {
             _clients[_next_client_id] = {};
             _clients[_next_client_id].connect(std::move(socket));
+            _clients[_next_client_id].handshake = crypter::handshake();
             if (_on_connect)
             {
                 _on_connect(_next_client_id);

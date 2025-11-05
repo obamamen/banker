@@ -124,9 +124,22 @@ namespace banker::networker
         ///     std::cout << (int)(b) << ' ';
         /// }
         /// @endcode
-        std::span<const uint8_t> get_data()
+        [[nodiscard]] std::span<const uint8_t> get_data() const
         {
-            return std::span(_data);
+            return { _data };
+        }
+
+        /// @brief writes T to front.
+        /// @note should only be used if you really know what's going on.
+        /// @details is used by client and server internally.
+        /// @tparam T the type to write. can be any trivially copyable.
+        /// @param value the value to write.
+        template<typename T>
+        void write_to_front(T value)
+        {
+            static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+            const auto* ptr = reinterpret_cast<const uint8_t*>(&value);
+            _data.insert(_data.begin(), ptr, ptr + sizeof(T));
         }
 
     private:
@@ -170,6 +183,11 @@ namespace banker::networker
 
             for (const auto& elem : vec)
                 write(elem);
+        }
+
+        void insert_bytes(const std::span<const uint8_t>& bytes)
+        {
+            _data.insert(_data.end(), bytes.begin(), bytes.end());
         }
     };
 }
