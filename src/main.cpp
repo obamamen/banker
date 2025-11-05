@@ -24,26 +24,26 @@ void server()
     server.set_on_connect(
         [](const networker::server::client_id id)
         {
-            std::cout << "(+) client " << id << " connected\n";
+            std::cout << banker::common::formatting::get_current_time(true) << "(+) client " << id << " connected\n";
         }
     );
 
     server.set_on_disconnect(
     [](const networker::server::client_id id)
         {
-            std::cout << "(-) client " << id << " disconnected\n";
+            std::cout << banker::common::formatting::get_current_time(true) << "(-) client " << id << " disconnected\n";
         }
     );
 
     server.set_on_receive([](const networker::server::client_id id, networker::packet packet)
         {
-            std::cout << "[*] client " << id << " send: " << packet.read<std::string>() << std::endl;
+            std::cout << banker::common::formatting::get_current_time(true) << "[*] client " << id << " send: " << packet.read<std::string>() << std::endl;
         }
     );
 
     server.set_on_internal_message([](const std::string& msg)
         {
-            std::cout << "<server> " << msg << std::endl;
+            std::cout << banker::common::formatting::get_current_time(true) << "<server> " << msg << std::endl;
         }
     );
 
@@ -58,7 +58,7 @@ void client()
     while (true)
     {
         client.tick();
-        std::cout << "tick()" << std::endl;
+        std::cout << banker::common::formatting::get_current_time(true) << "tick()" << std::endl;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

@@ -14,6 +14,7 @@
 #include "banker/crypto/crypter.hpp"
 #include "banker/crypto/format_bytes.hpp"
 #include "buildt_in/base_packets.hpp"
+#include "common/packet_handling.hpp"
 #include "core/packet.hpp"
 
 namespace banker::networker
@@ -98,27 +99,13 @@ namespace banker::networker
     private:
         void _handle_incoming()
         {
-            uint8_t buffer[4096];
-            const int bytes = _socket.recv(buffer, sizeof(buffer));
-            if (bytes == 0)
-            {
-                return;
-            }
+            auto [packets, error] = networker::common::get_available_packets(
+                _socket,
+                _recv_buffer);
 
-            if (bytes < 0)
-            {
-                // error, disconnect
-                return;
-            }
+            if (error <= 0) return;
 
-            _recv_buffer.insert(_recv_buffer.end(), buffer, buffer + bytes);
-
-            while (true)
-            {
-                auto pkt = packet::deserialize(_recv_buffer);
-                if (pkt.get_data().empty()) break;
-                _handle_packet(pkt);
-            }
+            for (auto& p : packets) _handle_packet(p);
         }
 
         void _handle_packet(packet& pkt)
@@ -152,17 +139,11 @@ namespace banker::networker
             const packet& pkt,
             base_packets::packet_type_to_server pt = base_packets::packet_type_to_server::user_defined) const
         {
-            if (!_socket.is_valid()) return false;
-
-            packet wrapper = {};
-            wrapper.write(static_cast<uint8_t>(pt));
-            wrapper.insert_bytes(pkt.get_data());
+            if (!_socket.is_valid()) return -1;
 
             std::cout << "send " << base_packets::packet_type_to_server_to_string(pt) << std::endl;
 
-            const auto serialized = wrapper.serialize();
-            const int sent = _socket.send(serialized.data(), serialized.size());
-            return sent;
+            return networker::common::send_packet_with_type(pkt, (uint8_t)pt, _socket);
         }
 
     private:

@@ -17,9 +17,11 @@
 #include <vector>
 
 #include "banker/common/formatting/header.hpp"
+#include "banker/common/formatting/time.hpp"
 #include "banker/crypto/crypter.hpp"
 #include "buildt_in/base_packets.hpp"
 #include "core/packet.hpp"
+#include "banker/networker/common/packet_handling.hpp"
 
 
 namespace banker::networker
@@ -138,14 +140,16 @@ namespace banker::networker
 
         [[noreturn]] void run()
         {
+
             constexpr int width = 60;
             constexpr char sides = '|';
-            common::formatting::print_divider(width,'=',"",sides);
-            common::formatting::print_divider(width, ' ',
-                common::formatting::format("server starting ", _ip, ":", _port),sides);
-            common::formatting::print_divider(width,'-',"",sides);
-            common::formatting::print_divider(width, ' '," ... ", sides);
-            common::formatting::print_divider(width,'=',"",sides);
+            banker::common::formatting::print_divider(width,'=',"",sides);
+            banker::common::formatting::print_divider(width, ' ',
+                banker::common::formatting::format("server starting ", _ip, ":", _port),sides);
+            banker::common::formatting::print_divider(width,'-',"",sides);
+            banker::common::formatting::print_divider(width, ' ',
+                banker::common::formatting::get_current_time(), sides);
+            banker::common::formatting::print_divider(width,'=',"",sides);
             while (true)
             {
                 this->tick();
@@ -160,25 +164,16 @@ namespace banker::networker
         }
 
     private:
-        bool _send_packet(
+        int _send_packet(
             const client_id client,
             const packet& pkt,
             base_packets::packet_type_from_server pt = base_packets::packet_type_from_server::user_defined)
         {
-            if (!_clients.contains(client)) return false;
+            if (!_clients.contains(client)) return -1;
             const auto &c = _clients[client];
-            if (!c.connected) return false;
+            if (!c.connected) return -1;
 
-            packet wrapper = {};
-            wrapper.write(static_cast<uint8_t>(pt));
-            wrapper.insert_bytes(pkt.get_data());
-
-            // std::cout << "send " << base_packets::packet_type_from_server_to_string(pt) <<
-            //     " to " <<  client <<std::endl;
-
-            const auto serialized = wrapper.serialize();
-            const int sent = c.client_socket.send(serialized.data(), serialized.size());
-            return sent == static_cast<int>(serialized.size());
+            return networker::common::send_packet_with_type(pkt, (uint8_t)pt, c.client_socket);
         }
 
         void _process_clients()
@@ -189,36 +184,16 @@ namespace banker::networker
 
             for (auto id : readable)
             {
-                auto &client = _clients[id];
+                const auto &client = _clients[id];
                 if (!client.connected) continue;
 
-                uint8_t buffer[4096];
-                const int bytes = client.client_socket.recv(buffer, sizeof(buffer));
-                if (bytes <= 0)
-                {
-                    _disconnect_client(id);
-                    continue;
-                }
+                auto [packets, error] = networker::common::get_available_packets(
+                    _clients[id].client_socket,
+                    _clients[id].recv_buffer);
 
-                // if (bytes < 0)
-                // {
-                //     _disconnect_client(id);
-                //     continue;
-                // }
+                if (error <= 0) disconnect_client(id);
 
-                client.recv_buffer.insert(client.recv_buffer.end(), buffer, buffer + bytes);
-
-                while (true)
-                {
-                    auto pkt = packet::deserialize(client.recv_buffer);
-
-                    if (pkt.get_data().empty())
-                    {
-                        break;
-                    }
-
-                    _handle_packet(id, pkt);
-                }
+                for (auto p : packets) _handle_packet(id,p);
             }
         }
 
