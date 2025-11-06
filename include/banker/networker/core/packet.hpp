@@ -124,9 +124,17 @@ namespace banker::networker
         ///     std::cout << (int)(b) << ' ';
         /// }
         /// @endcode
-        [[nodiscard]] std::span<const uint8_t> get_data() const
+        [[nodiscard]] std::span<const uint8_t> get_data()
         {
             return { _data };
+        }
+
+        /// @brief returns a view of the internal data, starting at the current offset.
+        /// @return const view of data
+        /// @note this is primarily only used for internal use.
+        [[nodiscard]] std::span<const uint8_t> get_remaining_data()
+        {
+            return std::span<uint8_t>(_data.data() + _read_offset, _data.back());
         }
 
         /// @brief writes T to front.
@@ -144,6 +152,9 @@ namespace banker::networker
 
     private:
         std::vector<uint8_t> _data{};
+
+        /// @brief pop pointer, stars at 0 increased dynamically based on reads.
+        ///
         size_t _read_offset{};
 
         void _can_read_check(const size_t size) const
