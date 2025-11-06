@@ -6,6 +6,8 @@
 #define BANKER_CRYPTER_HPP
 
 // VENDOR
+#include <span>
+
 #include "banker/vendor/monocypher/monocypher-ed25519.hpp"
 #include "banker/vendor/monocypher/monocypher.hpp"
 
@@ -15,6 +17,61 @@
 namespace banker::crypter
 {
     struct key { uint8_t bytes[32]{}; };
+    struct nonce { uint8_t bytes[24]{}; };
+    struct mac { uint8_t bytes[16]{}; };
+
+
+
+    inline void encrypt(
+        const key &key,
+        std::span<uint8_t> data,
+        const std::span<uint8_t> extra_data,
+        const nonce& nonce,
+        mac& mac)
+    {
+        const uint8_t *ad_ptr = extra_data.empty() ? nullptr : extra_data.data();
+
+        const uint64_t ad_size = static_cast<uint64_t>(extra_data.size());
+        const uint64_t text_size = static_cast<uint64_t>(data.size());
+
+        crypto_aead_lock(
+            data.data(),
+            mac.bytes,
+            key.bytes,
+            nonce.bytes,
+            ad_ptr,
+            ad_size,
+            data.data(),
+            text_size
+        );
+
+        return;
+    }
+
+    inline bool decrypt(
+        const key &key,
+        std::span<uint8_t> data,
+        const std::span<uint8_t> extra_data,
+        const nonce &nonce,
+        const mac &mac)
+    {
+        const uint8_t *ad_ptr = extra_data.empty() ? nullptr : extra_data.data();
+        const uint64_t ad_size = static_cast<uint64_t>(extra_data.size());
+        const uint64_t text_size = static_cast<uint64_t>(data.size());
+
+        const int r = crypto_aead_unlock(
+            data.data(),
+            mac.bytes,
+            key.bytes,
+            nonce.bytes,
+            ad_ptr,
+            ad_size,
+            data.data(),
+            text_size
+        );
+
+        return r == 0;
+    }
 
     class handshake
     {

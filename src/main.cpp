@@ -14,6 +14,9 @@
 #include "banker/crypto/crypter.hpp"
 
 #include "banker/networker/core/packet.hpp"
+#include "banker/tests/tester/tester.hpp"
+
+#include "banker/tests/encryption.hpp"
 
 using namespace banker;
 
@@ -53,15 +56,7 @@ void server()
 
 void client()
 {
-    networker::client client = {"127.0.0.1", 5050};
-
-    while (true)
-    {
-        client.tick();
-        std::cout << banker::common::formatting::get_current_time(true) << "tick()" << std::endl;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    tester::run_test({},true);
 }
 
 int main()
