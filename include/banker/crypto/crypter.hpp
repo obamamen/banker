@@ -16,7 +16,11 @@
 
 namespace banker::crypter
 {
-    struct key { uint8_t bytes[32]{}; };
+    struct key { uint8_t bytes[32]{};
+
+        bool operator==(const key& key) const = default;
+        bool operator!=(const key& key) const = default;
+    };
     struct nonce { uint8_t bytes[24]{}; };
     struct mac { uint8_t bytes[16]{}; };
 
@@ -91,6 +95,11 @@ namespace banker::crypter
         [[nodiscard]] key get_public() const
         {
             return _public;
+        }
+
+        [[nodiscard]] key get_private() const
+        {
+            return _private;
         }
 
         [[nodiscard]] key get_shared_secret() const

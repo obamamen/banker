@@ -151,7 +151,7 @@ namespace banker::networker
             if ( _read_offset + size > _data.size() )
             {
                 std::cerr << "packet underflow" << std::endl;
-                throw std::runtime_error("packet overflow");
+                throw std::runtime_error("packet underflow");
             }
         }
 

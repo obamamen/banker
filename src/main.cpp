@@ -16,7 +16,9 @@
 #include "banker/networker/core/packet.hpp"
 #include "banker/tests/tester/tester.hpp"
 
-#include "banker/tests/encryption.hpp"
+#include "banker/tests/encryption_tests.hpp"
+#include "banker/tests/handshake_tests.hpp"
+#include "banker/tests/packet_tests.hpp"
 
 using namespace banker;
 
@@ -56,7 +58,7 @@ void server()
 
 void client()
 {
-    tester::run_test({},true);
+    tester::run_test({}, true);
 }
 
 int main()

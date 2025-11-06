@@ -10,6 +10,8 @@
 #include <string>
 #include <type_traits>
 
+#include "banker/common/formatting/header.hpp"
+
 namespace banker::debug_inspector
 {
     /// @brief a variable struct that saves a variable state.

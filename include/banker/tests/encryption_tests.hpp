@@ -2,8 +2,8 @@
 // Created by moosm on 11/6/2025.
 //
 
-#ifndef BANKER_ENCRYPTION_HPP
-#define BANKER_ENCRYPTION_HPP
+#ifndef BANKER_ENCRYPTION_TESTS_HPP
+#define BANKER_ENCRYPTION_TESTS_HPP
 
 #include "banker/crypto/crypter.hpp"
 #include "banker/crypto/format_bytes.hpp"
@@ -30,7 +30,11 @@ BANKER_TEST_CASE(encryption_and_decryption, hello_world, "Tries to encrypt and d
     BANKER_MSG("Decrypted: ", banker::format_bytes::to_hex(plain));
     if (valid == false)
     {
-        BANKER_FAIL("Cannot be decrypted");
+        BANKER_FAIL("Cannot be decrypted, invalid KEY, MAC or NONCE got modified.");
+    }
+    if (memcmp(plain.data(), str.data(), plain.size()) != 0)
+    {
+        BANKER_FAIL("Got decrypted but got wrong plaintext.");
     }
 }
 
@@ -114,4 +118,4 @@ BANKER_TEST_CASE(encryption_and_decryption, hello_world_4, "Messes with the KEY 
     }
 }
 
-#endif //BANKER_ENCRYPTION_HPP
+#endif //BANKER_ENCRYPTION_TESTS_HPP

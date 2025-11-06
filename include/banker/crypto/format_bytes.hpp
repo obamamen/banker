@@ -202,6 +202,40 @@ namespace banker::format_bytes
         return details::to_base64_impl(data, len, b64_chars, true);
     }
 
+    inline std::string span_to_binary(
+        const std::span<const uint8_t> bytes,
+        size_t width = 1,
+        const std::string& separator = " ")
+    {
+        std::stringstream ss;
+        size_t bit_count = 0;
+
+        for (size_t i = 0; i < bytes.size(); ++i)
+        {
+            uint8_t b = bytes[i];
+
+            for (int bit = 0; bit < 8; ++bit)
+            {
+                ss << ((b >> bit) & 1);
+
+                ++bit_count;
+                if (width > 0 && bit_count % width == 0)
+                {
+                    ss << separator;
+                }
+            }
+        }
+
+        std::string result = ss.str();
+
+        if (!separator.empty() && result.size() >= separator.size())
+        {
+            result.erase(result.size() - separator.size());
+        }
+
+        return result;
+    }
+
     template<typename T>
     std::string to_binary(
         const T& value,

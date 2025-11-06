@@ -32,6 +32,9 @@ namespace banker::tester
         }
     }
 
+    inline thread_local std::vector<std::string> current_group_messages;
+
+
     struct test_case
     {
         std::string name = "<UNNAMED TEST CASE>";
@@ -123,10 +126,9 @@ namespace banker::tester
         } \
     } while(0)
 
-#define BANKER_FAIL(msg) \
+#define BANKER_FAIL(...) \
     do { \
-        banker::tester::append_test_message(msg); \
-        throw std::runtime_error(msg); \
+        throw std::runtime_error(banker::common::formatting::format(__VA_ARGS__)); \
     } while(0)
 
     template<typename T>
@@ -191,15 +193,15 @@ namespace banker::tester
 
         for (const auto& group : all_groups)
         {
+            int group_fails = 0;
             if (!should_run_group(group.name))
                 continue;
 
-            std::cout << "[GROUP] " << group.name << "\n";
+            std::cout << "[GROUP] " << group.name << "\n{";
 
             for (const auto& test_case : group.tests)
             {
                 clear_test_buffer();
-                if (!only_failed) std::cout << std::endl;
 
                 ++total_tests;
 
@@ -208,6 +210,7 @@ namespace banker::tester
                     test_case.test();
                     if (!only_failed)
                     {
+                        std::cout << "\n";
                         std::cout << "    [TEST] " << group.name << "::" << test_case.name;
                         if (!test_case.description.empty())
                             std::cout << " -> " << test_case.description;
@@ -219,7 +222,9 @@ namespace banker::tester
                 }
                 catch (const std::exception& e)
                 {
+                    group_fails++;
                     failed_tests.push_back({group,test_case,e.what()});
+                    std::cout << "\n";
                     std::cout << "!!! [TEST] " << group.name << "::" << test_case.name;
                     if (!test_case.description.empty())
                         std::cout << " -> " << test_case.description;
@@ -230,7 +235,9 @@ namespace banker::tester
                 }
                 catch (...)
                 {
+                    group_fails++;
                     failed_tests.push_back({group,test_case,"???"});
+                    std::cout << "\n";
                     std::cout << "!!!  [TEST] " << group.name << "::" << test_case.name;
                     if (!test_case.description.empty())
                         std::cout << " -> " << test_case.description;
@@ -239,6 +246,13 @@ namespace banker::tester
                     std::cout << "!!! [RESULT] failed !!!\n";
                     ++failed;
                 }
+            }
+            if (only_failed == true && group_fails == 0)
+            {
+                std::cout << " }\n\n";
+            } else
+            {
+                std::cout << "}\n\n";
             }
         }
 
