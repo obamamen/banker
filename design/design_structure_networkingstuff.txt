@@ -1,0 +1,28 @@
+structure:
+
+1. socket wrapper (networker::socket)
+
+2. tcp wrapper(non-blocking) might add the normal blocking-version for fun after
+
+    the send buffer needs to keep track of the offset, and only clear if it could send the entire packet,
+    and also the remaining current packet size(bytes).
+
+    recv buffer is the same but doesnt need to save anything, ...
+    ... beacuse it only gets cleared when a valid packet is created
+
+    recv_buffer() -> gets the latest bytes from tcp stream and adds them to the buffer.
+    try_recv() -> tries to recieve a valid packet, returns packet if valid.
+
+    send() -> tries to send it in 1 go (most likely) and if it can't, it serializes and appends into send buffer,
+        returns if it succeeded in sending in 1 go.
+    send_buffer() -> gets the user packet and serializes it into the send buffer
+    try_send() -> tries to send the oldest packet in the send buffer, returns if it succeeded
+
+3. crypto stream
+
+    uses the tcp wrapper for socket use, can handle things like handshakes and encryption deception.
+    can have those things behing abstraction and update functions.
+
+4. client / server , will use crypto_stream for the most part, server might also need base socket
+
+    user defined callback functions
