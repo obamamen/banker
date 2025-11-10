@@ -30,14 +30,14 @@ namespace banker::networker
             return buffer;
         }
 
-        /// @brief can be used for efficient manual serialization, for type id injection etc...
-        /// @warning only use if you really know how it works, never use this on its own.
-        void serialize_part_into_stream(
-            std::vector<uint8_t>& stream,
-            const serialize_part part) const
-        {
-            _serialize_into(stream, part);
-        }
+        // /// @brief can be used for efficient manual serialization, for type id injection etc...
+        // /// @warning only use if you really know how it works, never use this on its own.
+        // void serialize_part_into_stream(
+        //     std::vector<uint8_t>& stream,
+        //     const serialize_part part) const
+        // {
+        //     _serialize_into(stream, part);
+        // }
 
         /// @brief tries to deserialize, returns invalid packet if it can't deserialize.
         /// packet validness can be checked with ::is_valid()
