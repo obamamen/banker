@@ -58,7 +58,12 @@ void server()
 
 void client()
 {
-    tester::run_test({}, true);
+    banker::networker::client client("127.0.0.1",5050);
+    while (true)
+    {
+        client.tick();
+    }
+    //tester::run_test({}, true);
 }
 
 int main()

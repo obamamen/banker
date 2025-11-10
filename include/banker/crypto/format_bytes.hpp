@@ -204,7 +204,7 @@ namespace banker::format_bytes
 
     inline std::string span_to_binary(
         const std::span<const uint8_t> bytes,
-        size_t width = 1,
+        const size_t width = 1,
         const std::string& separator = " ")
     {
         std::stringstream ss;

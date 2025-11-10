@@ -15,19 +15,32 @@ namespace banker::networker
     class packet
     {
     public:
-        /// @brief serializes the packet for sending (adds a 4-byte length prefix)
-        [[nodiscard]] std::vector<uint8_t> serialize() const
+        /// @brief what part of the packet to serialize. It's for optimizing memory copying.
+        enum class serialize_part
+        {
+            header, /// length
+            data    /// data
+        };
+    public:
+        /// @brief serializes the packet for sending over TCP / stream (adds a 4-byte length prefix that is .get_data().size())
+        [[nodiscard]] std::vector<uint8_t> serialize_to_stream() const
         {
             std::vector<uint8_t> buffer;
-            const auto len = static_cast<uint32_t>(_data.size());
-            const uint32_t net_len = htonl(len);
-            const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
-            buffer.insert(buffer.end(), len_ptr, len_ptr + sizeof(uint32_t));
-            buffer.insert(buffer.end(), _data.begin(), _data.end());
+            _serialize_into(buffer);
             return buffer;
         }
 
-        /// @brief tries to deserialize, returns {} if not valid packet
+        /// @brief can be used for efficient manual serialization, for type id injection etc...
+        /// @warning only use if you really know how it works, never use this on its own.
+        void serialize_part_into_stream(
+            std::vector<uint8_t>& stream,
+            const serialize_part part) const
+        {
+            _serialize_into(stream, part);
+        }
+
+        /// @brief tries to deserialize, returns invalid packet if it can't deserialize.
+        /// packet validness can be checked with ::is_valid()
         static packet deserialize(std::vector<uint8_t>& stream)
         {
             if (stream.size() < sizeof(uint32_t))
@@ -70,6 +83,13 @@ namespace banker::networker
         void clear()
         {
             _data.clear();
+        }
+
+        /// @brief return true if valid returns false if not.
+        /// can be used after a ::deserialize() , to check if it could.
+        bool is_valid() const
+        {
+            return _data.size() != 0;
         }
 
         /// @brief tries to read the value of T. will throw on packet_underflow.
@@ -124,7 +144,7 @@ namespace banker::networker
         ///     std::cout << (int)(b) << ' ';
         /// }
         /// @endcode
-        [[nodiscard]] std::span<const uint8_t> get_data()
+        [[nodiscard]] std::span<const uint8_t> get_data() const
         {
             return { _data };
         }
@@ -156,6 +176,44 @@ namespace banker::networker
         /// @brief pop pointer, stars at 0 increased dynamically based on reads.
         ///
         size_t _read_offset{};
+
+        void _serialize_into(
+            std::vector<uint8_t>& stream) const
+        {
+            const auto len = static_cast<uint32_t>(_data.size());
+            const uint32_t net_len = htonl(len);
+            const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
+            stream.insert(stream.end(), len_ptr, len_ptr + sizeof(uint32_t));
+
+            stream.insert(stream.end(), _data.begin(), _data.end());
+        }
+
+        // void _serialize_into(
+        //     std::vector<uint8_t>& stream,
+        //     const serialize_part part) const
+        // {
+        //     if (part == serialize_part::header)
+        //         { _serialize_into<serialize_part::header>(stream); }
+        //
+        //     if (part == serialize_part::data)
+        //         { _serialize_into<serialize_part::data>(stream); }
+        // }
+
+        // template <serialize_part part>
+        // void _serialize_into(std::vector<uint8_t>& stream) const
+        // {
+        //     if constexpr (part == serialize_part::header)
+        //     {
+        //         const auto len = static_cast<uint32_t>(_data.size());
+        //         const uint32_t net_len = htonl(len);
+        //         const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
+        //         stream.insert(stream.end(), len_ptr, len_ptr + sizeof(uint32_t));
+        //     }
+        //     if constexpr (part == serialize_part::data)
+        //     {
+        //         stream.insert(stream.end(), _data.begin(), _data.end());
+        //     }
+        // }
 
         void _can_read_check(const size_t size) const
         {

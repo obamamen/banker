@@ -6,13 +6,14 @@
 #define BANKER_SOCKET_HPP
 
 #include <numeric>
+#include <span>
 
 #include "error.hpp"
 #include "../../debug_inspector.hpp"
 
 #ifdef _WIN32
-    #include <winsock2.h> // core socket handler
-    #include <ws2tcpip.h> // inet_pton(), inet_ntop(), ipv6 support, DNS info
+    #include <winsock2.h> // core socket handler.
+    #include <ws2tcpip.h> // inet_pton(), inet_ntop(), ipv6 support, DNS info.
     typedef SOCKET socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = INVALID_SOCKET;
     constexpr int BANKER_SOCKET_ERROR = SOCKET_ERROR;
@@ -25,6 +26,7 @@
     #include <errno.h>          // errno
     #include <sys/time.h>       // timeval
     #include <sys/types.h>      // socklen_t fd_set
+    #include <sys/uio.h>        // for writev
     typedef int socket_t;
     constexpr socket_t BANKER_INVALID_SOCKET = ( -1 );
     constexpr int BANKER_SOCKET_ERROR = ( -1 );
@@ -37,6 +39,19 @@ namespace banker::networker
     public:
         constexpr static socket_t invalid_socket = BANKER_INVALID_SOCKET;
         constexpr static socket_t socket_error = BANKER_SOCKET_ERROR;
+
+        enum class receive_result
+        {
+            valid,
+            connection_lost,
+            error,
+        };
+
+        struct iovec_c
+        {
+            const void* data;
+            size_t len;
+        };
 
     public:
         /// @brief if the socket is valid.
@@ -210,11 +225,63 @@ namespace banker::networker
             return n;
         }
 
+        /// @brief sends multiple buffers in order to the host.
+        /// @tparam max_buffers the max amount of elements sendable.
+        /// @param buffers pointers to buffer pointers. (contig in memory)
+        /// @param count count of valid buffers.
+        /// @return the number of bytes actually sent, or a negative value if an error occurred.
+        template<size_t max_buffers = 32>
+        [[nodiscard]] int sendv(
+            const iovec_c* buffers,
+            const size_t count) const
+        {
+            if (count == 0 || count > max_buffers || !buffers) return -1;
+#ifdef _WIN32
+            WSABUF wsabufs[max_buffers];
+
+            for (size_t i = 0; i < count; ++i)
+            {
+                wsabufs[i].buf = (CHAR*)buffers[i].data;
+                wsabufs[i].len = static_cast<ULONG>(buffers[i].len);
+            }
+
+            DWORD sent = 0;
+            const int res = WSASend(_socket, wsabufs, static_cast<DWORD>(count), &sent, 0, nullptr, nullptr);
+            if (res != 0) return -1;
+            return static_cast<int>(sent);
+#else
+            struct iovec iov[max_buffers];
+
+            for (size_t i = 0; i < count; ++i)
+            {
+                iov[i].iov_base = (void*)buffers[i].data;
+                iov[i].iov_len = buffers[i].len;
+            }
+
+            ssize_t n = ::writev(_socket, iov, static_cast<int>(count));
+            return static_cast<int>(n);
+#endif
+        }
+
+        /// @brief cleaner way of using sendv, can be used with brace initializer.
+        /// @tparam N amount of elements
+        /// @param buffers (buffer ptr, buffer size)
+        /// @return the number of bytes actually sent, or a negative value if an error occurred.
+        template <size_t N>
+        [[nodiscard]] int sendv(
+            const std::pair<const void*, size_t> (&buffers)[N]) const
+        {
+            iovec_c c_buffers[N];
+            for (size_t i = 0; i < N; i++) c_buffers[i] = { buffers[i].first, buffers[i].second };
+
+            return sendv(c_buffers, N);
+        }
+
         /// @brief receives data from the connected host.
         /// @param buffer pointer to the buffer where received data will be stored.
         /// @param len maximum number of bytes to receive into the buffer.
         /// @return the number of bytes actually received, 0 if the connection was closed,
-        ///         or a negative value if an error occurred.
+        ///         or a negative value if an error occurred. (this will be the case in non-blocking mode so check for the no_data error)
         [[nodiscard]] int recv(void* buffer, const size_t len) const
         {
             const int n = ::recv(_socket, static_cast<char*>(buffer), static_cast<int>(len), 0);
