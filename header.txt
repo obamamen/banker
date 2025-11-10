@@ -1,0 +1,9 @@
+#if ($HEADER_COMMENTS)
+/* ================================== *\
+ @file     ${FILE_NAME}
+ @project  ${PROJECT_NAME}
+ @author   ${USER}
+ @date     ${DATE}
+*\ ================================== */
+
+#end
