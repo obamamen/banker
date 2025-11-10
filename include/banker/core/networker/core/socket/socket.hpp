@@ -9,7 +9,7 @@
 #include <span>
 
 #include "error.hpp"
-#include "../../debug_inspector.hpp"
+#include "banker/debug_inspector.hpp"
 
 #ifdef _WIN32
     #include <winsock2.h> // core socket handler.

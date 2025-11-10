@@ -5,9 +5,9 @@
 #ifndef BANKER_ENCRYPTION_TESTS_HPP
 #define BANKER_ENCRYPTION_TESTS_HPP
 
-#include "banker/crypto/crypter.hpp"
-#include "banker/crypto/format_bytes.hpp"
-#include "tester/tester.hpp"
+#include "banker/core/crypto/crypter.hpp"
+#include "banker/core/crypto/format_bytes.hpp"
+#include "banker/tester/tester.hpp"
 
 BANKER_TEST_CASE(encryption_and_decryption, hello_world, "Tries to encrypt and decrypt \"Hello world!\"")
 {

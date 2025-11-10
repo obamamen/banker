@@ -3,18 +3,18 @@
 #include <thread>
 
 #include "banker/banker.hpp"
-#include "../include/banker/networker/core/socket.hpp"
-#include "../include/banker/networker/client.hpp"
-#include "banker/crypto/format_bytes.hpp"
-#include "banker/networker/server.hpp"
+#include "banker/core/networker/core/socket/socket.hpp"
+#include "banker/core/networker/client.hpp"
+#include "banker/core/crypto/format_bytes.hpp"
+#include "banker/core/networker/server.hpp"
 
 
-#include "../include/banker/crypto/crypto_rng.hpp"
+#include "banker/core/crypto/crypto_rng.hpp"
 #include "banker/common/time/timers.hpp"
-#include "banker/crypto/crypter.hpp"
+#include "banker/core/crypto/crypter.hpp"
 
-#include "banker/networker/core/packet.hpp"
-#include "banker/tests/tester/tester.hpp"
+#include "banker/core/networker/core/packet.hpp"
+#include "banker/tester/tester.hpp"
 
 #include "banker/tests/encryption_tests.hpp"
 #include "banker/tests/handshake_tests.hpp"

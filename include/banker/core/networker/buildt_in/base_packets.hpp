@@ -4,7 +4,9 @@
 
 #ifndef BANKER_PACKET_TYPES_HPP
 #define BANKER_PACKET_TYPES_HPP
+
 #include <cstdint>
+#include <string_view>
 
 namespace banker::networker::base_packets
 {

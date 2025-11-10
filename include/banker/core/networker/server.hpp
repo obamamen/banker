@@ -7,7 +7,7 @@
 
 #include <functional>
 
-#include "core/networker.hpp"
+#include "networker.hpp"
 #include "banker/debug_inspector.hpp"
 
 #include <thread>
@@ -18,10 +18,10 @@
 
 #include "banker/common/formatting/header.hpp"
 #include "banker/common/formatting/time.hpp"
-#include "banker/crypto/crypter.hpp"
+#include "banker/core/crypto/crypter.hpp"
 #include "buildt_in/base_packets.hpp"
 #include "core/packet.hpp"
-#include "banker/networker/common/stream_handler.hpp"
+#include "banker/core/networker/common/stream_handler.hpp"
 
 
 namespace banker::networker

@@ -6,9 +6,9 @@
 #define BANKER_PACKET_TESTS_HPP
 
 #include "banker/debug_inspector.hpp"
-#include "banker/crypto/format_bytes.hpp"
-#include "banker/networker/core/packet.hpp"
-#include "banker/tests/tester/tester.hpp"
+#include "banker/core/crypto/format_bytes.hpp"
+#include "banker/core/networker/core/packet.hpp"
+#include "banker/tester/tester.hpp"
 
 BANKER_TEST_CASE(packets, 2_ints, "Creates a packet, puts 2 ints into it and tries getting the same 2 out.")
 {

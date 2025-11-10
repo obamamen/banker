@@ -9,10 +9,10 @@
 #include <iostream>
 #include <string>
 
-#include "core/socket.hpp"
-#include "../debug_inspector.hpp"
-#include "banker/crypto/crypter.hpp"
-#include "banker/crypto/format_bytes.hpp"
+#include "core/socket/socket.hpp"
+#include "banker/debug_inspector.hpp"
+#include "banker/core/crypto/crypter.hpp"
+#include "banker/core/crypto/format_bytes.hpp"
 #include "buildt_in/base_packets.hpp"
 #include "common/stream_handler.hpp"
 #include "core/packet.hpp"

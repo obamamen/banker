@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "banker/crypto/crypter.hpp"
-#include "banker/networker/core/socket.hpp"
+#include "banker/networker/core/socket/socket.hpp"
 #include "banker/networker/core/packet.hpp"
 
 #include "banker/networker/common/stream_handler.hpp"

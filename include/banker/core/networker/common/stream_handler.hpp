@@ -8,8 +8,8 @@
 
 #include <assert.h>
 
-#include "banker/networker/core/packet.hpp"
-#include "banker/networker/core/socket.hpp"
+#include "banker/core/networker/core/packet.hpp"
+#include "banker/core/networker/core/socket/socket.hpp"
 
 namespace banker::networker::common
 {

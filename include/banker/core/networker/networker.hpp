@@ -5,8 +5,8 @@
 #ifndef BANKER_NETWORKER_HPP
 #define BANKER_NETWORKER_HPP
 
-#include "socket.hpp"
-#include "error.hpp"
+#include "core/socket/socket.hpp"
+#include "core/socket/error.hpp"
 
 #include <vector>
 

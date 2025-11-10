@@ -5,6 +5,6 @@
 #ifndef BANKER_BANKER_HPP
 #define BANKER_BANKER_HPP
 
-#include "networker/core/networker.hpp"
+// #include "networker/core/networker.hpp"
 
 #endif //BANKER_BANKER_HPP
