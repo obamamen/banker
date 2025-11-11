@@ -14,7 +14,7 @@
 #include "banker/core/crypto/crypter.hpp"
 #include "banker/core/crypto/format_bytes.hpp"
 #include "buildt_in/base_packets.hpp"
-#include "common/stream_handler.hpp"
+#include "core/tcp/stream_handler.hpp"
 #include "core/packet.hpp"
 
 namespace banker::networker

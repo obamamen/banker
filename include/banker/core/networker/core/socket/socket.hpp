@@ -218,7 +218,7 @@ namespace banker::networker
         /// @brief sends data through the socket to the host.
         /// @param data pointer to a byte in the buffer (should be start).
         /// @param len the number of bytes to send counted from the data pointer (should be buffer length).
-        /// @return the number of bytes actually sent, or a negative value if an error occurred.
+        /// @return the number of bytes actually sent, if not ( 0 : disconnect, < 0 : error )
         [[nodiscard]] int send(const void* data, const size_t len) const
         {
             const int n = ::send(_socket, static_cast<const char*>(data), static_cast<int>(len), 0);
@@ -281,7 +281,7 @@ namespace banker::networker
         /// @param buffer pointer to the buffer where received data will be stored.
         /// @param len maximum number of bytes to receive into the buffer.
         /// @return the number of bytes actually received, 0 if the connection was closed,
-        ///         or a negative value if an error occurred. (this will be the case in non-blocking mode so check for the no_data error)
+        ///         or a negative value if an error occurred. (this will be the case in non-blocking mode so check for the would_block error)
         [[nodiscard]] int recv(void* buffer, const size_t len) const
         {
             const int n = ::recv(_socket, static_cast<char*>(buffer), static_cast<int>(len), 0);

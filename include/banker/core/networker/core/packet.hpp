@@ -15,11 +15,12 @@ namespace banker::networker
     class packet
     {
     public:
-        /// @brief what part of the packet to serialize. It's for optimizing memory copying.
-        enum class serialize_part
+        /// @brief the packet's header, this will be prepended to all packets when using its serialization,
+        /// and should be prepended when manually done.
+        ///
+        struct header
         {
-            header, /// length
-            data    /// data
+            uint32_t size{0};
         };
     public:
         /// @brief serializes the packet for sending over TCP / stream (adds a 4-byte length prefix that is .get_data().size())
@@ -30,36 +31,23 @@ namespace banker::networker
             return buffer;
         }
 
-        // /// @brief can be used for efficient manual serialization, for type id injection etc...
-        // /// @warning only use if you really know how it works, never use this on its own.
-        // void serialize_part_into_stream(
-        //     std::vector<uint8_t>& stream,
-        //     const serialize_part part) const
-        // {
-        //     _serialize_into(stream, part);
-        // }
-
         /// @brief tries to deserialize, returns invalid packet if it can't deserialize.
         /// packet validness can be checked with ::is_valid()
-        static packet deserialize(std::vector<uint8_t>& stream)
+        static packet deserialize(
+            std::vector<uint8_t>& stream)
         {
-            if (stream.size() < sizeof(uint32_t))
-                return {};
+            header h = _deserialize_header(stream);
 
-            uint32_t len = 0;
-            std::memcpy(&len, stream.data(), sizeof(uint32_t));
-            len = ntohl(len);
-
-            if (stream.size() < sizeof(uint32_t) + len)
-                return {};
+            if (h.size == 0) return {};
+            if (stream.size() < h.size) return {};
 
             packet pkt;
             pkt._data.insert(pkt._data.end(),
-                             stream.begin() + sizeof(uint32_t),
-                             stream.begin() + sizeof(uint32_t) + len);
+                             stream.begin(),
+                             stream.begin() + h.size);
 
             stream.erase(stream.begin(),
-                         stream.begin() + sizeof(uint32_t) + len);
+                         stream.begin() + h.size);
 
             return pkt;
         }
@@ -77,6 +65,27 @@ namespace banker::networker
             {
                 _data.push_back(raw_v[b]);
             }
+        }
+
+        /// @brief generates usable header based on current data.
+        /// @warning do not send over network, use generate_header_net()
+        header generate_header() const
+        {
+            return header { .size = static_cast<uint32_t>(_data.size()) };
+        }
+
+        /// @brief generates header for network use, use header_from_net() to transfer it from net.
+        header generate_header_net() const
+        {
+            header h = generate_header();
+            h.size = htonl(h.size);
+            return h;
+        }
+
+        static header header_from_net(header h)
+        {
+            h.size = ntohl(h.size);
+            return h;
         }
 
         /// @brief clears the packet fully.
@@ -134,8 +143,10 @@ namespace banker::networker
             }
         }
 
-        /// @brief returns a view of the internal data
-        /// @return const view of data
+        /// @brief returns a view of the internal data.
+        /// @return const view of data.
+        /// @note don't worry of the size of send packet doesn't equal the received packet size,
+        /// there could be internal data added somewhere.
         /// @note try to use it as such:
         /// @code{.cpp}
         /// for (size_t i = 0; i < p.get_data().size(); ++i)
@@ -152,9 +163,9 @@ namespace banker::networker
         /// @brief returns a view of the internal data, starting at the current offset.
         /// @return const view of data
         /// @note this is primarily only used for internal use.
-        [[nodiscard]] std::span<const uint8_t> get_remaining_data()
+        [[nodiscard]] std::span<const uint8_t> get_remaining_data() const
         {
-            return std::span<uint8_t>(_data.data() + _read_offset, _data.back());
+            return std::span<const uint8_t>(_data.data() + _read_offset, _data.size() - _read_offset);
         }
 
         /// @brief writes T to front.
@@ -180,40 +191,34 @@ namespace banker::networker
         void _serialize_into(
             std::vector<uint8_t>& stream) const
         {
-            const auto len = static_cast<uint32_t>(_data.size());
-            const uint32_t net_len = htonl(len);
-            const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
-            stream.insert(stream.end(), len_ptr, len_ptr + sizeof(uint32_t));
-
+            _serialize_header_into(stream);
             stream.insert(stream.end(), _data.begin(), _data.end());
         }
 
-        // void _serialize_into(
-        //     std::vector<uint8_t>& stream,
-        //     const serialize_part part) const
-        // {
-        //     if (part == serialize_part::header)
-        //         { _serialize_into<serialize_part::header>(stream); }
-        //
-        //     if (part == serialize_part::data)
-        //         { _serialize_into<serialize_part::data>(stream); }
-        // }
+        void _serialize_header_into(
+            std::vector<uint8_t>& stream) const
+        {
+            const header h = generate_header_net();
+            const auto* h_ptr = reinterpret_cast<const uint8_t*>(&h);
+            stream.insert(stream.end(), h_ptr, h_ptr + sizeof(header));
+        }
 
-        // template <serialize_part part>
-        // void _serialize_into(std::vector<uint8_t>& stream) const
-        // {
-        //     if constexpr (part == serialize_part::header)
-        //     {
-        //         const auto len = static_cast<uint32_t>(_data.size());
-        //         const uint32_t net_len = htonl(len);
-        //         const auto* len_ptr = reinterpret_cast<const uint8_t*>(&net_len);
-        //         stream.insert(stream.end(), len_ptr, len_ptr + sizeof(uint32_t));
-        //     }
-        //     if constexpr (part == serialize_part::data)
-        //     {
-        //         stream.insert(stream.end(), _data.begin(), _data.end());
-        //     }
-        // }
+        static header _deserialize_header(
+            std::vector<uint8_t>& stream)
+        {
+            if (stream.size() < sizeof(header))
+                return {};
+
+            header h = {};
+            std::memcpy(&h, stream.data(), sizeof(h));
+            h = header_from_net(h);
+
+            stream.erase(
+                stream.begin(),
+                stream.begin() + sizeof(header));
+
+            return h;
+        }
 
         void _can_read_check(const size_t size) const
         {

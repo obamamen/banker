@@ -18,7 +18,7 @@ namespace banker::networker
     enum class socket_error_code
     {
         none,               // operation succeeded
-        no_data,            // (would block)
+        would_block,        // (would block)
         refused,            // connection refused
         reset,              // connection reset
         timeout,            // operation timed out
@@ -37,7 +37,7 @@ namespace banker::networker
         switch ( WSAGetLastError() )
         {
             case 0:                 return socket_error_code::none;
-            case WSAEWOULDBLOCK:    return socket_error_code::no_data;
+            case WSAEWOULDBLOCK:    return socket_error_code::would_block;
             case WSAECONNREFUSED:   return socket_error_code::refused;
             case WSAECONNRESET:     return socket_error_code::reset;
             case WSAETIMEDOUT:      return socket_error_code::timeout;
@@ -55,7 +55,7 @@ namespace banker::networker
 #ifdef EAGAIN
             case EAGAIN:
 #endif
-                                    return socket_error_code::no_data;
+                                    return socket_error_code::would_block;
             case ECONNREFUSED:      return socket_error_code::refused;
             case ECONNRESET:        return socket_error_code::reset;
             case ETIMEDOUT:         return socket_error_code::timeout;
@@ -76,7 +76,7 @@ namespace banker::networker
         switch (err)
         {
             case socket_error_code::none:            return "none";
-            case socket_error_code::no_data:         return "no_data";
+            case socket_error_code::would_block:     return "would_block";
             case socket_error_code::refused:         return "refused";
             case socket_error_code::reset:           return "reset";
             case socket_error_code::timeout:         return "timeout";

@@ -1,0 +1,18 @@
+have 2 nonces per socket, 1 for incoming, 1 for outgoing.
+
+    only increment on a full packet send or received,
+
+    why 2?
+
+    otherwise when they send at the same time they both increment their nonce's and they wont match up:
+    A : 28
+    b : 28
+
+    a sends with 28 nonce++, b sends with 28 nonce++.
+
+    and with 2 they can have:
+    A : 18, 12
+    b : 12, 18
+
+    A sends packet with 18++, and if B send with their nonce it will use the 12 and they still match up.
+    they need nonces for both direction.

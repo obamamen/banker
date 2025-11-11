@@ -11,7 +11,7 @@
 #include "banker/core/networker/core/packet.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 
-namespace banker::networker::common
+namespace banker::networker::tcp
 {
     struct packets_with_error
     {
@@ -39,13 +39,14 @@ namespace banker::networker::common
     }
 
     /// @brief streams all bytes from the socket into buffer.
+    /// @return if there is an actual error, (would block not included).
     bool inline stream_socket(
         const socket& socket,
         std::vector<uint8_t>& stream)
     {
         assert(socket.is_valid());
 
-        uint8_t local_buffer[4096];
+        uint8_t local_buffer[4096*4];
         int bytes = socket.recv(local_buffer, sizeof(local_buffer));
         while (bytes > 0)
         {
@@ -53,8 +54,9 @@ namespace banker::networker::common
             bytes = socket.recv(local_buffer, sizeof(local_buffer));
         }
 
+        // should only get here if there is no data (left), error or disconnect
         return bytes == -1 &&
-            banker::networker::get_last_socket_error() == socket_error_code::no_data;
+            get_last_socket_error() == socket_error_code::would_block;
     }
 
     int inline send_packet_with_type(
@@ -79,7 +81,7 @@ namespace banker::networker::common
     {
         if (!socket.is_valid()) return {};
 
-        uint8_t local_buffer[4096];
+        uint8_t local_buffer[4096*8];
 
         const int bytes = socket.recv(local_buffer, sizeof(local_buffer));
 
@@ -94,7 +96,7 @@ namespace banker::networker::common
         {
             auto pkt = packet::deserialize(stream);
 
-            if (pkt.get_data().empty())
+            if (!pkt.is_valid())
                 break;
 
             packets.push_back(pkt);
