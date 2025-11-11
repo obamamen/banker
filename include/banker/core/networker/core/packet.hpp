@@ -39,15 +39,15 @@ namespace banker::networker
             header h = _deserialize_header(stream);
 
             if (h.size == 0) return {};
-            if (stream.size() < h.size) return {};
+            if (stream.size() < (h.size + sizeof(header))) return {};
 
             packet pkt;
             pkt._data.insert(pkt._data.end(),
-                             stream.begin(),
-                             stream.begin() + h.size);
+                             stream.begin() + sizeof(header),
+                             stream.begin() + sizeof(header) + h.size);
 
             stream.erase(stream.begin(),
-                         stream.begin() + h.size);
+                         stream.begin() + h.size + sizeof(header));
 
             return pkt;
         }
@@ -204,7 +204,7 @@ namespace banker::networker
         }
 
         static header _deserialize_header(
-            std::vector<uint8_t>& stream)
+            const std::vector<uint8_t>& stream)
         {
             if (stream.size() < sizeof(header))
                 return {};
@@ -212,10 +212,6 @@ namespace banker::networker
             header h = {};
             std::memcpy(&h, stream.data(), sizeof(h));
             h = header_from_net(h);
-
-            stream.erase(
-                stream.begin(),
-                stream.begin() + sizeof(header));
 
             return h;
         }

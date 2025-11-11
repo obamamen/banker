@@ -1,0 +1,4 @@
+0: fixup crypto stream thingy
+1: rewrite server class
+2: rewrite client class
+3: cleaner naming of all the socket wrappers

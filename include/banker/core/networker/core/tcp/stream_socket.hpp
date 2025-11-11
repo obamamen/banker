@@ -44,9 +44,11 @@ namespace banker::networker
         /// @return returns if connection was successful.
         bool connect(
             const u_short port,
-            const std::string& host = "0.0.0.0") const
+            const std::string& host = "0.0.0.0")
         {
-            return _socket.connect(host,port);
+            auto c = _socket.create();
+            if (c == false) return false;
+            return _socket.connect(host, port);
         }
 
 
@@ -111,9 +113,8 @@ namespace banker::networker
         send_data _send(const packet& packet)
         {
             const auto t = _flush_send_buffer();
-            if (!_send_buff.empty()) return {false, t};
-
             const bool s = _try_send(packet);
+            if (!_send_buff.empty()) return {false, t};
 
             return {s,t + s};
         }
@@ -214,9 +215,10 @@ namespace banker::networker
         stream_socket accept() const
         {
             socket client_socket = _socket.accept();
-            if (client_socket.set_blocking(false))
+            if (!client_socket.is_valid()) return {};
+            if (!client_socket.set_blocking(false))
             {
-                auto _ =client_socket.close();
+                auto _ = client_socket.close();
                 return {};
             }
             return stream_socket(std::move(client_socket));

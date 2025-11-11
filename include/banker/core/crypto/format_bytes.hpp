@@ -11,6 +11,7 @@
 #include <string>
 #include <bitset>
 #include <cstdint>
+#include <vector>
 
 namespace banker::format_bytes
 {
