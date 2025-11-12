@@ -5,10 +5,14 @@
 #ifndef BANKER_PACKET_HPP
 #define BANKER_PACKET_HPP
 
+#include <assert.h>
 #include <span>
 #include <vector>
 #include <cstdint>
 #include <cstring>
+
+#include "banker/shared/compat.hpp"
+#include "banker/shared/program_macros.hpp"
 
 namespace banker::networker
 {
@@ -17,7 +21,6 @@ namespace banker::networker
     public:
         /// @brief the packet's header, this will be prepended to all packets when using its serialization,
         /// and should be prepended when manually done.
-        ///
         struct header
         {
             uint32_t size{0};
@@ -74,14 +77,39 @@ namespace banker::networker
             return header { .size = static_cast<uint32_t>(_data.size()) };
         }
 
+        /// generates a header from combined packets. useful for manually combining packets.
+        /// @param packets non owning view of packets.
+        static header generate_header_from(const std::span<packet> packets)
+        {
+            assert(packets.size() >= 1);
+
+            header h{};
+            for (auto& packet : packets)
+            {
+                h.size += static_cast<uint32_t>(packet._data.size());
+            }
+            return h;
+        }
+
         /// @brief generates header for network use, use header_from_net() to transfer it from net.
         header generate_header_net() const
         {
             header h = generate_header();
+            return packet::header_to_net(h);
+        }
+
+        /// @brief user order header converted to network order header.
+        /// @param h user header.
+        /// @return network header.
+        static header header_to_net(header h)
+        {
             h.size = htonl(h.size);
             return h;
         }
 
+        /// @brief network order header converted to user order header.
+        /// @param h network header.
+        /// @return user header.
         static header header_from_net(header h)
         {
             h.size = ntohl(h.size);
@@ -106,27 +134,39 @@ namespace banker::networker
         /// @details it will call read recusrivly for complex types, so the byte index will be moved none constantly.
         /// @details (there will be a compiler error if unreadable type)
         /// @tparam T the type to read. can be any copiable, std::string or std::vector. (can be combined: std::vector<std::string>)
+        /// @param valid pointer to bool, will be set to either 'true' or 'false' depending on if thr read was successful.
         /// @return the value it has read.
         template<typename T>
-        T read()
+        T read(bool* valid = nullptr)
         {
-            if constexpr (std::is_same_v<T, std::string>)
+            if (valid != nullptr) *valid = true;
+
+            if BANKER_CONSTEXPR (std::is_same_v<T, std::string>)
             {
-                const auto len = read<uint32_t>();
-                _can_read_check(len);
+                const auto len = read<uint32_t>(valid);
+                if (!_can_read_check(len))
+                {
+                    if (!_valid_check(valid, false)) { BANKER_TERMINATE("BAD PACKET (UNDERFLOW)"); }
+                    return {};
+                }
                 std::string result(reinterpret_cast<const char*>(_data.data() + _read_offset), len);
                 _read_offset += len;
                 return result;
             }
-            else if constexpr (is_vector<T>::value)
+            else if BANKER_CONSTEXPR (is_vector<T>::value)
             {
                 using elem_t = typename T::value_type;
 
-                auto len = read<uint32_t>();
+                auto len = read<uint32_t>(valid);
+                if (!_can_read_check(len))
+                {
+                    if (!_valid_check(valid, false)) { BANKER_TERMINATE("BAD PACKET (UNDERFLOW)"); }
+                    return {};
+                }
 
                 T vec(len);
                 for (uint32_t i = 0; i < len; ++i)
-                    vec[i] = read<elem_t>();
+                    vec[i] = read<elem_t>(valid);
 
                 return vec;
             }
@@ -135,7 +175,11 @@ namespace banker::networker
                 static_assert(std::is_trivially_copyable_v<T>,
                               "T must be trivially copyable or std::string");
 
-                _can_read_check(sizeof(T));
+                if (!_can_read_check(sizeof(T)))
+                {
+                    if (!_valid_check(valid, false)) { BANKER_TERMINATE("BAD PACKET (UNDERFLOW)"); }
+                    return {};
+                }
                 T value;
                 std::memcpy(&value, _data.data() + _read_offset, sizeof(T));
                 _read_offset += sizeof(T);
@@ -216,13 +260,24 @@ namespace banker::networker
             return h;
         }
 
-        void _can_read_check(const size_t size) const
+        /// tries to set valid flag to set.
+        /// @param valid pointer to flag.
+        /// @param set what to set the flag to.
+        /// @return if the flag could be set. ( if valid is NULL it can't )
+        static bool _valid_check(bool* valid, const bool set = false)
+        {
+            if (valid == nullptr) return false;
+            *valid = set;
+            return true;
+        }
+
+        bool _can_read_check(const size_t size) const
         {
             if ( _read_offset + size > _data.size() )
             {
-                std::cerr << "packet underflow" << std::endl;
-                throw std::runtime_error("packet underflow");
+                return false;
             }
+            return true;
         }
 
         template<typename T>

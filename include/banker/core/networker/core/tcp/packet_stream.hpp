@@ -51,10 +51,20 @@ namespace banker::networker
         /// @brief tries to send packet.
         /// it will first try to flush its queued packages, and then the current packet.
         /// @param packet packet to try to send, might get added to internal buffer if it couldn't send.
-        /// @return see `send_data`.
+        /// @return see `packet_stream_core::send_data`.
         [[nodiscard]] packet_stream_core::send_data send_packet(const packet& packet)
         {
             return core.send(_socket, packet);
+        }
+
+        /// @brief tries to send packets merged.
+        /// @note merge meaning it combines the packet.data() into 1 sendv and merges the packet::header 's.
+        /// @param packets non owning view packets.
+        /// @return see `packet_stream_core::send_data`.
+        [[nodiscard]] packet_stream_core::send_data send_packets_merged(
+            const std::span<packet> packets)
+        {
+            return core.send_merged(_socket, packets);
         }
 
         /// @brief flushes the internal out buffer.

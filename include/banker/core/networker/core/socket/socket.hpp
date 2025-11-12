@@ -226,39 +226,62 @@ namespace banker::networker
         }
 
         /// @brief sends multiple buffers in order to the host.
-        /// @tparam max_buffers the max amount of elements sendable.
         /// @param buffers pointers to buffer pointers. (contig in memory)
         /// @param count count of valid buffers.
         /// @return the number of bytes actually sent, or a negative value if an error occurred.
-        template<size_t max_buffers = 32>
         [[nodiscard]] int sendv(
             const iovec_c* buffers,
             const size_t count) const
         {
-            if (count == 0 || count > max_buffers || !buffers) return -1;
+            if (count == 0 || !buffers) return -1;
 #ifdef _WIN32
-            WSABUF wsabufs[max_buffers];
+            thread_local WSABUF main_buff[32];
+            WSABUF* buf_ptr = nullptr;
+
+            std::vector<WSABUF> heap_buff;
+
+            if (count <= std::size(main_buff))
+            {
+                buf_ptr = main_buff;
+            }
+            else
+            {
+                heap_buff.resize(count);
+                buf_ptr = heap_buff.data();
+            }
 
             for (size_t i = 0; i < count; ++i)
             {
-                wsabufs[i].buf = (CHAR*)buffers[i].data;
-                wsabufs[i].len = static_cast<ULONG>(buffers[i].len);
+                buf_ptr[i].buf = const_cast<CHAR*>(static_cast<const CHAR*>(buffers[i].data));
+                buf_ptr[i].len = static_cast<ULONG>(buffers[i].len);
             }
 
             DWORD sent = 0;
-            const int res = WSASend(_socket, wsabufs, static_cast<DWORD>(count), &sent, 0, nullptr, nullptr);
+            int res = WSASend(_socket, buf_ptr, static_cast<DWORD>(count), &sent, 0, nullptr, nullptr);
             if (res != 0) return -1;
             return static_cast<int>(sent);
 #else
-            struct iovec iov[max_buffers];
+            thread_local struct iovec main_buff[32];
+            struct iovec* buf_ptr = nullptr;
+            std::vector<iovec> heap_buff;
+
+            if (count <= std::size(main_buff))
+            {
+                buf_ptr = main_buff;
+            }
+            else
+            {
+                heap_buff.resize(count);
+                buf_ptr = heap_buff.data();
+            }
 
             for (size_t i = 0; i < count; ++i)
             {
-                iov[i].iov_base = (void*)buffers[i].data;
-                iov[i].iov_len = buffers[i].len;
+                buf_ptr[i].iov_base = buffers[i].data;
+                buf_ptr[i].iov_len  = buffers[i].len;
             }
 
-            ssize_t n = ::writev(_socket, iov, static_cast<int>(count));
+            ssize_t n = ::writev(_socket, buf_ptr, static_cast<int>(count));
             return static_cast<int>(n);
 #endif
         }

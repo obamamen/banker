@@ -38,11 +38,18 @@ namespace banker::networker::tcp
             _buffer.insert(_buffer.end(), data.begin(), data.end());
         }
 
+        void append_remaining(
+            uint8_t* data,
+            const size_t size,
+            const size_t already_sent)
+        {
+            append(data + already_sent, size - already_sent);
+        }
+
         uint8_t* data() const
         {
             return const_cast<uint8_t *>(_buffer.data() + _offset);
         }
-
 
         size_t size() const
         {

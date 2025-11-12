@@ -139,6 +139,14 @@
 #  define BANKER_DEFAULT {}
 #endif
 
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#  define BANKER_BIG_ENDIAN 1
+#elif defined(_WIN32)
+#  define BANKER_LITTLE_ENDIAN 1
+#else
+#  define BANKER_LITTLE_ENDIAN 1
+#endif
+
 #if defined(BANKER_COMPILER_MSVC)
 #  define BANKER_FORCEINLINE __forceinline
 #elif defined(BANKER_COMPILER_GCC) || defined(BANKER_COMPILER_CLANG)

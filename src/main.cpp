@@ -48,9 +48,14 @@ void server()
         networker::packet p = ss.receive_packet();
         if (p.is_valid())
         {
-            std::cout << "server received: ";
-            auto s = p.read<std::string>();
-            std::cout << s[0] << "..." << " size: " << p.get_data().size() << std::endl;
+            while (true)
+            {
+                bool valid = true;
+                auto s = p.read<std::string>(&valid);
+                if (!valid) break;
+                std::cout << "server received: ";
+                std::cout << s[0] << s[1] << "..." << std::endl;
+            }
         }
     }
 }
@@ -60,14 +65,24 @@ void client()
     networker::packet_stream c{};
     bool con = c.connect(5050,"127.0.0.1");
     if (!con) std::cerr << "Failed to connect to server" << std::endl;
+    std::vector<networker::packet> packets{};
     for (int i = 0; i < 10; i++)
     {
         networker::packet p{};
         std::string big_data(1024 * 1024, 'A' + (i % 26));
         p.write(big_data);
-        auto s = c.send_packet(p);
-        if (s.sent_current != 1)
-            std::cout << "Packet " << i << " partially sent, queued in _send_buff\n";
+        packets.push_back(
+            std::move(p));
+    }
+
+    auto s = c.send_packets_merged(packets);
+    if (s.sent_current != 1)
+        std::cout << "Packet" << " partially sent, queued in _send_buff\n";
+
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "flush: " << c.flush_send_buffer().sent_total << std::endl;
     }
 }
 
