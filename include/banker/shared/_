@@ -1,0 +1,4 @@
+"banker/shared"
+
+reminder: only for headers that don't include any other non-std header,
+    mostly macros small helper functions.
