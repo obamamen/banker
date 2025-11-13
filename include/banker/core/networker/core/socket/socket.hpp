@@ -160,12 +160,14 @@ namespace banker::networker
 
         /// @brief binds the socket to a specific IP address and port on the local machine.
         /// @param port the local port to bind the socket to.
-        /// @param ip the local IP address to bind to (default is "127.0.0.1").
+        /// @param ip the local IP address to bind to (default is "0.0.0.0").
         /// @return true -> succeeded, false -> failed.
-        [[nodiscard]] bool bind(const u_short port, const std::string& ip = "127.0.0.1") const
+        [[nodiscard]] bool bind(
+            const u_short port,
+            const std::string& ip = "0.0.0.0") const
         {
             sockaddr_in local_addr{};
-            local_addr.sin_family = _domain;
+            local_addr.sin_family = static_cast<short>(_domain);
             local_addr.sin_port = htons(port);
 #ifdef _WIN32
             local_addr.sin_addr.s_addr = inet_addr(ip.c_str());
@@ -203,7 +205,7 @@ namespace banker::networker
 
         /// @brief accepts an incoming client connection.
         /// @return a new `socket` object representing the accepted client connection.
-        ///         if no connection is available or an error occurs, the returned socket WILL be uninitialized.
+        ///         if no connection is available or an error occurs, the returned socket WILL be default initialized ( check with ::is_valid() ).
         [[nodiscard]] socket accept() const
         {
             sockaddr_storage client_addr{};

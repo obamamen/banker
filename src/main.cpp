@@ -16,6 +16,7 @@
 
 #include "banker/core/networker/core/packet.hpp"
 #include "banker/core/networker/core/tcp/packet_stream.hpp"
+#include "banker/core/networker/crypto/crypto_channel_core.hpp"
 #include "banker/tester/tester.hpp"
 
 #include "banker/tests/encryption_tests.hpp"
@@ -25,11 +26,10 @@
 using namespace banker;
 
 
-
-void server()
+[[noreturn]] void server()
 {
-    networker::stream_socket_host h{};
-    bool w = h.create_and_bind(5050,"127.0.0.1");
+    networker::packet_stream_host h{};
+    bool w = h.create(5050,"127.0.0.1");
     if (w) std::cout << "Server listening on port 5050" << std::endl;
     networker::packet_stream ss;
     while (true)
@@ -41,49 +41,44 @@ void server()
             break;
         }
     }
-    std::this_thread::sleep_for(std::chrono_literals::operator ""ms(1000));
+
+    std::this_thread::sleep_for(std::chrono_literals::operator ""ms(100));
+
     while (true)
     {
         ss.tick();
         networker::packet p = ss.receive_packet();
         if (p.is_valid())
         {
-            while (true)
-            {
-                bool valid = true;
-                auto s = p.read<std::string>(&valid);
-                if (!valid) break;
-                std::cout << "server received: ";
-                std::cout << s[0] << s[1] << "..." << std::endl;
-            }
+            std::cout << "packet encrypted: " << format_bytes::to_hex(p.get_data()) << std::endl;
+            networker::crypto_core::decrypt_packet(p,{1},{2});
+            std::cout << "packet plaintext: " << format_bytes::to_hex(p.get_data()) << std::endl;
+
+            std::cout << p.read<std::string>() << std::endl;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 void client()
 {
-    networker::packet_stream c{};
-    bool con = c.connect(5050,"127.0.0.1");
-    if (!con) std::cerr << "Failed to connect to server" << std::endl;
-    std::vector<networker::packet> packets{};
-    for (int i = 0; i < 10; i++)
-    {
-        networker::packet p{};
-        std::string big_data(1024 * 1024, 'A' + (i % 26));
-        p.write(big_data);
-        packets.push_back(
-            std::move(p));
-    }
+    networker::packet_stream_core core{};
+    networker::socket s{};
+    s.create();
+    bool con = s.connect("127.0.0.1",5050);
+    if (!con) std::cerr << "cant connect to server!" << std::endl;
 
-    auto s = c.send_packets_merged(packets);
-    if (s.sent_current != 1)
-        std::cout << "Packet" << " partially sent, queued in _send_buff\n";
+    std::string msg = "Hello World!";
+    networker::packet p{};
+    p.write(msg);
 
-    while (true)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::cout << "flush: " << c.flush_send_buffer().sent_total << std::endl;
-    }
+    networker::crypto_core::encrypt_send(
+        s,
+        p,
+        {1},
+        core,
+        {2});
+
 }
 
 

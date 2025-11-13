@@ -35,7 +35,7 @@ namespace banker::networker
         ~packet_stream_core() = default;
         packet_stream_core(const packet_stream_core&) = default;
         packet_stream_core& operator=(const packet_stream_core&) = default;
-        packet_stream_core(packet_stream_core&&) = default;
+        packet_stream_core(packet_stream_core&&)  noexcept = default;
         packet_stream_core& operator=(packet_stream_core&&) = default;
 
         /// @brief streams the socket stream into internal buffer, should be called regularly.
@@ -206,7 +206,7 @@ namespace banker::networker
             BANKER_LIKELY if (sent == sizeof(h_net) + size) return true;
 
             tcp::out_buffer buffer(sizeof(h_net) + size - sent);
-            const size_t remaining = static_cast<size_t>(sent);
+            const auto remaining = static_cast<size_t>(sent);
 
             size_t offset = remaining;
             for (const auto& vec : io_vector)
@@ -229,6 +229,58 @@ namespace banker::networker
 
             _send_buffer.push_back(std::move(buffer));
             return false;
+        }
+    };
+
+    class packet_stream_host_core
+    {
+    public:
+        packet_stream_host_core() = default;
+        ~packet_stream_host_core() = default;
+        packet_stream_host_core(const packet_stream_host_core&) = default;
+        packet_stream_host_core& operator=(const packet_stream_host_core&) = default;
+        packet_stream_host_core(packet_stream_host_core&&) = default;
+        packet_stream_host_core& operator=(packet_stream_host_core&&) = default;
+
+        BANKER_NODISCARD static bool create(
+            socket& socket)
+        {
+            if (!socket.create(AF_INET, SOCK_STREAM)) return false;
+
+            if (!socket.set_reuse_address(true)) goto packet_stream_host_core_create_error;
+
+            if (!socket.set_blocking(false)) goto packet_stream_host_core_create_error;
+
+            return true;
+
+        packet_stream_host_core_create_error:
+            auto _ = socket.close();
+            return false;
+        }
+
+        BANKER_NODISCARD static bool bind(
+            const socket& socket,
+            const uint16_t port,
+            const std::string& ip = "0.0.0.0")
+        {
+            return socket.bind(port, ip);
+        }
+
+        BANKER_NODISCARD static bool listen(
+            const socket& socket,
+            const int backlog = 1024)
+        {
+            return socket.listen(backlog);
+        }
+
+        BANKER_NODISCARD static socket accept_incoming(
+            const socket& socket)
+        {
+            networker::socket s = socket.accept();
+            if (!s.is_valid()) return s;
+            if (!s.set_blocking(false)) auto _ = s.close();
+
+            return s;
         }
     };
 }

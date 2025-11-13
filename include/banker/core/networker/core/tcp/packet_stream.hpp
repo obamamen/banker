@@ -23,7 +23,7 @@ namespace banker::networker
 {
     class packet_stream
     {
-        friend class stream_socket_host;
+        friend class packet_stream_host;
     private:
         explicit packet_stream(socket&& socket) : _socket(std::move(socket)) {}
     public:
@@ -77,7 +77,7 @@ namespace banker::networker
 
         /// @brief checks to see if underlying socket is valid.
         /// @return
-        bool is_valid() const
+        [[nodiscard]] bool is_valid() const
         {
             return _socket.is_valid();
         }
@@ -109,43 +109,61 @@ namespace banker::networker
         packet_stream_core core{};
     };
 
-    class stream_socket_host
+    class packet_stream_host
     {
     public:
-        stream_socket_host() = default;
-        ~stream_socket_host() = default;
-        stream_socket_host(const stream_socket_host&) = delete;
-        stream_socket_host& operator=(const stream_socket_host&) = delete;
-        stream_socket_host(stream_socket_host&&) = default;
-        stream_socket_host& operator=(stream_socket_host&&) = default;
+        packet_stream_host() = default;
+        ~packet_stream_host() = default;
+        packet_stream_host(const packet_stream_host&) = delete;
+        packet_stream_host& operator=(const packet_stream_host&) = delete;
+        packet_stream_host(packet_stream_host&&) = default;
+        packet_stream_host& operator=(packet_stream_host&&) = default;
 
-        bool create_and_bind(
+        /// creates, binds, and listens on the socket.
+        /// @param port
+        /// @param ip
+        /// @param backlog
+        /// @return
+        BANKER_NODISCARD bool create(
             const uint16_t port,
-            const std::string& ip = "0.0.0.0")
+            const std::string& ip = "0.0.0.0",
+            const int backlog = 1024)
         {
-            if (!_socket.create(AF_INET, SOCK_STREAM)) return false;
+            const bool created = packet_stream_host_core::create(
+                _socket);
 
-            if (!_socket.set_reuse_address(true)) return false;
+            if (created == false) return false;
 
-            if (!_socket.set_blocking(false)) return false;
+            const bool bound = packet_stream_host_core::bind(
+                _socket,
+                port,
+                ip);
 
-            if (!_socket.bind(port, ip)) return false;
+            if (bound == false) return false;
 
-            return _socket.listen(1024);
+            const bool listening = packet_stream_host_core::listen(
+                _socket,
+                backlog);
+
+            if (listening == false) return false;
+
+            return true;
+        }
+
+        BANKER_NODISCARD bool relisten(
+            const int backlog = 1024) const
+        {
+            return packet_stream_host_core::listen(
+                _socket,
+                backlog);
         }
 
         /// @brief calls .accept , and convert it into a packet_stream.
         /// @return the stream socket, needs to be checked for validness.
-        packet_stream accept() const
+        BANKER_NODISCARD packet_stream accept() const
         {
-            socket client_socket = _socket.accept();
-            if (!client_socket.is_valid()) return {};
-            if (!client_socket.set_blocking(false))
-            {
-                auto _ = client_socket.close();
-                return {};
-            }
-            return packet_stream(std::move(client_socket));
+            auto socket = packet_stream_host_core::accept_incoming(_socket);
+            return packet_stream{ std::move(socket) };
         }
     private:
         socket _socket{};

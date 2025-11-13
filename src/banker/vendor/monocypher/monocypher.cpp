@@ -160,6 +160,18 @@ int crypto_verify16(const u8 a[16], const u8 b[16]){ return neq0(x16(a, b)); }
 int crypto_verify32(const u8 a[32], const u8 b[32]){ return neq0(x32(a, b)); }
 int crypto_verify64(const u8 a[64], const u8 b[64]){ return neq0(x64(a, b)); }
 
+    ////////////////////
+    ///    CUSTOM    ///
+    ////////////////////
+
+    int crypto_verify24(const uint8_t a[24],
+                        const uint8_t b[24])
+        {
+            u64 diff = x16(a, b);
+            diff |= load64_le(a + 16) ^ load64_le(b + 16);
+            return neq0(diff);
+        }
+
 void crypto_wipe(void *secret, size_t size)
 {
 	volatile u8 *v_secret = (u8*)secret;

@@ -16,13 +16,29 @@
 
 namespace banker::crypter
 {
-    struct key { uint8_t bytes[32]{};
+    struct key
+    {
+        uint8_t bytes[32]{};
 
-        bool operator==(const key& key) const = default;
-        bool operator!=(const key& key) const = default;
+        bool operator==(const key& key) const { return crypto_verify32(bytes,key.bytes) ==  0; };
+        bool operator!=(const key& key) const { return crypto_verify32(bytes,key.bytes) == -1; };
     };
-    struct nonce { uint8_t bytes[24]{}; };
-    struct mac { uint8_t bytes[16]{}; };
+
+    struct nonce
+    {
+        uint8_t bytes[24]{};
+
+        bool operator==(const nonce& nonce) const { return crypto_verify24(bytes,nonce.bytes) ==  0; };
+        bool operator!=(const nonce& nonce) const { return crypto_verify24(bytes,nonce.bytes) == -1; };
+    };
+
+    struct mac
+    {
+        uint8_t bytes[16]{};
+
+        bool operator==(const mac& mac) const { return crypto_verify16(bytes,mac.bytes) ==  0; };
+        bool operator!=(const mac& mac) const { return crypto_verify16(bytes,mac.bytes) == -1; };
+    };
 
     /// @brief encrypts anything, using KEY, and NONCE
     /// @param key shared key.
@@ -41,8 +57,8 @@ namespace banker::crypter
     {
         const uint8_t *ad_ptr = extra_data.empty() ? nullptr : extra_data.data();
 
-        const uint64_t ad_size = static_cast<uint64_t>(extra_data.size());
-        const uint64_t text_size = static_cast<uint64_t>(data.size());
+        const auto ad_size = static_cast<uint64_t>(extra_data.size());
+        const auto text_size = static_cast<uint64_t>(data.size());
 
         crypto_aead_lock(
             data.data(),
@@ -54,9 +70,7 @@ namespace banker::crypter
             data.data(),
             text_size
         );
-
-        return;
-    }
+   }
 
     /// tries to decrypt data, using KEY and NONCE.
     /// @param key shared key.
@@ -113,6 +127,37 @@ namespace banker::crypter
             _generate_public();
         }
 
+        ~handshake()
+        {
+            _wipe();
+        }
+
+        handshake(const handshake &other) = delete;
+        handshake& operator=(const handshake &other) = delete;
+
+        handshake(handshake&& other) noexcept
+        {
+            _shared_secret = other._shared_secret;
+            _public = other._public;
+            _private = other._private;
+            _is_shared_valid = other._is_shared_valid;
+            other._wipe();
+        }
+
+        handshake& operator=(handshake&& other) noexcept
+        {
+            if (this == &other) return *this;
+
+            _wipe();
+            _shared_secret = other._shared_secret;
+            _public = other._public;
+            _private = other._private;
+            _is_shared_valid = other._is_shared_valid;
+            other._wipe();
+
+            return *this;
+        }
+
         /// @brief public key getter.
         [[nodiscard]] key get_public() const
         {
@@ -160,6 +205,14 @@ namespace banker::crypter
         void _generate_public()
         {
             crypto_x25519_public_key( _public.bytes, _private.bytes );
+        }
+
+        void _wipe()
+        {
+            crypto_wipe(_private.bytes, sizeof(_private));
+            crypto_wipe(_public.bytes, sizeof(_public.bytes));
+            crypto_wipe(_shared_secret.bytes, sizeof(_shared_secret.bytes));
+            _is_shared_valid = false;
         }
     };
 }

@@ -26,6 +26,22 @@ namespace banker::networker
             uint32_t size{0};
         };
     public:
+        explicit packet( std::span<uint8_t> data ) : _data(data.begin(), data.end()) {}
+
+        packet() = default;
+        ~packet() = default;
+
+        packet( const packet &rhs ) = default;
+        packet( packet &&rhs ) = default;
+        packet &operator=( const packet &rhs ) = default;
+        packet &operator=( packet &&rhs ) = default;
+
+        explicit packet( std::vector<uint8_t>&& data ) noexcept
+            : _data(std::move(data)) {}
+
+        explicit packet( std::span<const uint8_t> data )
+            : _data(data.begin(), data.end()) {}
+
         /// @brief serializes the packet for sending over TCP / stream (adds a 4-byte length prefix that is .get_data().size())
         [[nodiscard]] std::vector<uint8_t> serialize_to_stream() const
         {
@@ -81,7 +97,7 @@ namespace banker::networker
         /// @param packets non owning view of packets.
         static header generate_header_from(const std::span<packet> packets)
         {
-            assert(packets.size() >= 1);
+            assert(!packets.empty());
 
             header h{};
             for (auto& packet : packets)
@@ -91,8 +107,22 @@ namespace banker::networker
             return h;
         }
 
+        /// generates a header from combined packets. useful for manually combining packets.
+        /// @param packets non owning view of packets.
+        static header generate_header_from(const std::span< packet* > packets)
+        {
+            assert(!packets.empty());
+
+            header h{};
+            for (const auto& packet : packets)
+            {
+                if (packet != nullptr) h.size += static_cast<uint32_t>(packet->_data.size());
+            }
+            return h;
+        }
+
         /// @brief generates header for network use, use header_from_net() to transfer it from net.
-        header generate_header_net() const
+        [[nodiscard]] header generate_header_net() const
         {
             header h = generate_header();
             return packet::header_to_net(h);
@@ -124,9 +154,9 @@ namespace banker::networker
 
         /// @brief return true if valid returns false if not.
         /// can be used after a ::deserialize() , to check if it could.
-        bool is_valid() const
+        [[nodiscard]] bool is_valid() const
         {
-            return _data.size() != 0;
+            return !_data.empty();
         }
 
         /// @brief tries to read the value of T. will throw on packet_underflow.
@@ -204,12 +234,17 @@ namespace banker::networker
             return { _data };
         }
 
+        [[nodiscard]] std::span<uint8_t> get_data()
+        {
+            return { _data };
+        }
+
         /// @brief returns a view of the internal data, starting at the current offset.
         /// @return const view of data
         /// @note this is primarily only used for internal use.
-        [[nodiscard]] std::span<const uint8_t> get_remaining_data() const
+        [[nodiscard]] std::span<uint8_t> get_remaining_data()
         {
-            return std::span<const uint8_t>(_data.data() + _read_offset, _data.size() - _read_offset);
+            return {_data.data() + _read_offset, _data.size() - _read_offset};
         }
 
         /// @brief writes T to front.

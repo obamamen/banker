@@ -111,6 +111,17 @@ namespace banker::format_bytes
                             sizeof(T) * N, separator, width);
     }
 
+    template<typename T>
+    inline std::string to_hex(
+        std::span<T> data,
+        const std::string& separator = "",
+        const size_t width = 1)
+    {
+        static_assert(std::is_trivially_copyable_v<T>);
+        return to_hex_bytes(reinterpret_cast<const unsigned char*>(data.data()),
+                            data.size_bytes(), separator, width);
+    }
+
     inline std::string to_hex(
         const uint8_t* data,
         const size_t len,

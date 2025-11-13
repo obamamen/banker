@@ -63,6 +63,14 @@ namespace MONOCYPHER_CPP_NAMESPACE {
 extern "C" {
 #endif
 
+    ////////////////////
+    ///    CUSTOM    ///
+    ////////////////////
+
+    // Return 0 if a and b are equal, -1 otherwise
+    int crypto_verify24(const uint8_t a[24],
+                        const uint8_t b[24]);
+
 // Constant time comparisons
 // -------------------------
 
@@ -70,6 +78,7 @@ extern "C" {
 int crypto_verify16(const uint8_t a[16], const uint8_t b[16]);
 int crypto_verify32(const uint8_t a[32], const uint8_t b[32]);
 int crypto_verify64(const uint8_t a[64], const uint8_t b[64]);
+
 
 
 // Erase sensitive data
