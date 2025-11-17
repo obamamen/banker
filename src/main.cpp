@@ -44,40 +44,41 @@ using namespace banker;
 
     std::this_thread::sleep_for(std::chrono_literals::operator ""ms(100));
 
-    while (true)
-    {
-        ss.tick();
-        networker::packet p = ss.receive_packet();
-        if (p.is_valid())
-        {
-            std::cout << "packet encrypted: " << format_bytes::to_hex(p.get_data()) << std::endl;
-            networker::crypto_core::decrypt_packet(p,{1},{2});
-            std::cout << "packet plaintext: " << format_bytes::to_hex(p.get_data()) << std::endl;
-
-            std::cout << p.read<std::string>() << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    // while (true)
+    // {
+    //     ss.tick();
+    //     networker::packet p = ss.receive_packet();
+    //     if (p.is_valid())
+    //     {
+    //         std::cout << "packet encrypted: " << format_bytes::to_hex(p.get_data()) << std::endl;
+    //         networker::crypto_core::decrypt_packet(p,{1},{2});
+    //         std::cout << "packet plaintext: " << format_bytes::to_hex(p.get_data()) << std::endl;
+    //
+    //         std::cout << p.read<std::string>() << std::endl;
+    //     }
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // }
 }
 
 void client()
 {
-    networker::packet_stream_core core{};
-    networker::socket s{};
-    s.create();
-    bool con = s.connect("127.0.0.1",5050);
-    if (!con) std::cerr << "cant connect to server!" << std::endl;
-
-    std::string msg = "Hello World!";
-    networker::packet p{};
-    p.write(msg);
-
-    networker::crypto_core::encrypt_send(
-        s,
-        p,
-        {1},
-        core,
-        {2});
+    tester::run_test({"packet_encryption_and_decryption"}, false);
+    // networker::packet_stream_core core{};
+    // networker::socket s{};
+    // s.create();
+    // bool con = s.connect("127.0.0.1",5050);
+    // if (!con) std::cerr << "cant connect to server!" << std::endl;
+    //
+    // std::string msg = "Hello World!";
+    // networker::packet p{};
+    // p.write(msg);
+    //
+    // networker::crypto_core::encrypt_send(
+    //     s,
+    //     p,
+    //     {1},
+    //     core,
+    //     {2});
 
 }
 

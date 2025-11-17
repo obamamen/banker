@@ -116,7 +116,8 @@ namespace banker::tester
 
 #define BANKER_MSG(...) \
     do { \
-        banker::tester::append_test_message(banker::common::formatting::format(__VA_ARGS__)); \
+    using namespace banker::common::formatting;    \
+        banker::tester::append_test_message( format(__VA_ARGS__) ); \
     } while(0)
 
 #define BANKER_CHECK(cond) \
@@ -190,6 +191,8 @@ namespace banker::tester
                 [&](const std::string& g){ return g == group_name; }
             );
         };
+
+        banker::time::scoped_timer timer{};
 
         for (const auto& group : all_groups)
         {
@@ -276,7 +279,9 @@ namespace banker::tester
         }
 
 
-        banker::common::formatting::print_divider(40, '=', "");
+        banker::common::formatting::print_divider(40, '=',
+            common::formatting::format(
+                "  [", timer.ms(), " MS", "]  "));
     }
 
     inline void run_test(auto groups, bool only_failed = false)

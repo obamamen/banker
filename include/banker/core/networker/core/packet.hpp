@@ -42,12 +42,24 @@ namespace banker::networker
         explicit packet( std::span<const uint8_t> data )
             : _data(data.begin(), data.end()) {}
 
+        explicit packet( const uint8_t *data, const size_t size )
+            : _data( std::vector<uint8_t>(data, data + size) ) {}
+
+
         /// @brief serializes the packet for sending over TCP / stream (adds a 4-byte length prefix that is .get_data().size())
         [[nodiscard]] std::vector<uint8_t> serialize_to_stream() const
         {
             std::vector<uint8_t> buffer;
             _serialize_into(buffer);
             return buffer;
+        }
+
+        /// @brief serializes the packet into an already exisitng stream.
+        /// @param stream ref to stream.
+        void serialize_into_stream(
+            std::vector<uint8_t>& stream) const
+        {
+            _serialize_into(stream);
         }
 
         /// @brief tries to deserialize, returns invalid packet if it can't deserialize.
@@ -173,7 +185,7 @@ namespace banker::networker
 
             if BANKER_CONSTEXPR (std::is_same_v<T, std::string>)
             {
-                const auto len = read<uint32_t>(valid);
+                const auto len = this->read<uint32_t>(valid);
                 if (!_can_read_check(len))
                 {
                     if (!_valid_check(valid, false)) { BANKER_TERMINATE("BAD PACKET (UNDERFLOW)"); }
@@ -196,9 +208,20 @@ namespace banker::networker
 
                 T vec(len);
                 for (uint32_t i = 0; i < len; ++i)
-                    vec[i] = read<elem_t>(valid);
+                    vec[i] = this->read<elem_t>(valid);
 
                 return vec;
+            }
+            else if BANKER_CONSTEXPR (std::is_same_v<T, packet>)
+            {
+                const auto len = this->read<uint32_t>(valid);
+                if (!_can_read_check(len))
+                {
+                    if (!_valid_check(valid, false)) { BANKER_TERMINATE("BAD PACKET (UNDERFLOW)"); }
+                    return {};
+                }
+
+                return packet(this->get_remaining_data().data(), len);
             }
             else
             {
@@ -330,6 +353,13 @@ namespace banker::networker
             const auto len = static_cast<uint32_t>(v.size());
             this->write(len);
             _data.insert(_data.end(), v.begin(), v.end());
+        }
+
+        void write(const packet& v)
+        {
+            const auto len = static_cast<uint32_t>(v.get_data().size());
+            this->write(len);
+            _data.insert(_data.end(), v.get_data().begin(), v.get_data().end());
         }
 
         /// write vector<T> spec.

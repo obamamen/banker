@@ -101,4 +101,43 @@ BANKER_TEST_CASE(packets, vector_string, "Creates a packet, tries to put multipl
     }
 }
 
+BANKER_TEST_CASE(packets, packet_inception, "Creates a packet and embeds another packet into it + tries to read it again.")
+{
+    std::vector<uint8_t> stream{};
+    {
+        banker::networker::packet pkt;
+        banker::networker::packet embed;
+
+        std::string s = "Hello, World!";
+        BANKER_MSG("<string>: ", s);
+
+        embed.write( s );
+        const std::vector<int> ints {1,2,3,4,5};
+        BANKER_MSG("<vector<int>>: ", ints);
+
+        embed.write(ints);
+        BANKER_MSG("embed size: ", embed.get_data().size());
+        pkt.write(embed);
+        pkt.serialize_into_stream(stream);
+    }
+
+    {
+        banker::networker::packet pkt = banker::networker::packet::deserialize(stream);
+        bool valid = false;
+
+        auto embedded = pkt.read< banker::networker::packet >(&valid);
+        if (valid == false) BANKER_FAIL("Invalid packet (can't get the embed)");
+        BANKER_MSG("embed size: ", embedded.get_data().size());
+
+        std::string s = embedded.read<std::string>(&valid);
+        if (valid == false) BANKER_FAIL("Invalid packet (can't get the string)");
+        BANKER_MSG("<string>: ", s);
+
+        const auto ints = embedded.read<std::vector<int>>(&valid);
+        if (valid == false) BANKER_FAIL("Invalid packet (can't get the vector < int >)");
+        BANKER_MSG("<vector<int>>: ", ints);
+    }
+
+}
+
 #endif //BANKER_PACKET_TESTS_HPP

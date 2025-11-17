@@ -7,7 +7,86 @@
 
 #include "banker/core/crypto/crypter.hpp"
 #include "banker/core/crypto/format_bytes.hpp"
+#include "banker/core/networker/crypto/crypto_core.hpp"
 #include "banker/tester/tester.hpp"
+
+BANKER_TEST_CASE(packet_encryption_and_decryption, simple, "Tries to encypt and decrypt a very simple packet.")
+{
+    std::vector<uint8_t> stream{};
+    banker::crypter::key s_key;
+    banker::crypto_rng::get(s_key);
+
+    BANKER_MSG("key: ", banker::format_bytes::to_hex(s_key));
+    BANKER_MSG("");
+    std::vector<uint8_t> binary_plain_text;
+
+    {
+        banker::networker::crypto_core cc{};
+
+        banker::networker::packet pkt{};
+        banker::networker::packet data{};
+        std::string s = "Hello, World!";
+        data.write(s);
+        BANKER_MSG("plain data: "," (",
+                banker::format_bytes::to_hex(data.get_data())
+            ,") = ", s);
+
+        binary_plain_text = std::vector<uint8_t>{
+            data.get_data().begin(),
+            data.get_data().end()};
+
+        auto mac = banker::networker::crypto_core::encrypt_packet(
+            data,
+            s_key,
+            cc.generate_outgoing_nonce());
+
+
+
+        BANKER_MSG("encrypted data: ", "(",
+                banker::format_bytes::to_hex(data.get_data())
+            ,")");
+        BANKER_MSG("mac: ", banker::format_bytes::to_hex(mac));
+        pkt.write(mac);
+        pkt.write(data);
+        pkt.serialize_into_stream(stream);
+    }
+    BANKER_MSG("");
+    {
+        banker::networker::crypto_core cc{};
+        banker::networker::packet pkt = banker::networker::packet::deserialize(stream);
+        bool valid = false;
+
+        const auto mac = pkt.read<banker::crypter::mac>(&valid);
+        if (valid == false) BANKER_FAIL("can't read the mac.");
+        BANKER_MSG("mac: ", banker::format_bytes::to_hex(mac));
+
+        auto data = pkt.read<banker::networker::packet>(&valid);
+        if (valid == false) BANKER_FAIL("can't read the data.");
+        BANKER_MSG("encrypted data: ", "(",
+                banker::format_bytes::to_hex(data.get_data())
+            ,")");
+
+        banker::networker::crypto_core::decrypt_packet(
+            data,
+            s_key,
+            cc.generate_incoming_nonce(),
+            mac);
+
+        std::string s = data.read<std::string>();
+        BANKER_MSG("decrypted data: "," (",
+                banker::format_bytes::to_hex(data.get_data())
+            ,") = ", s);
+
+        if (std::memcmp(
+            data.get_data().data(),
+            binary_plain_text.data(),
+            data.get_data().size()
+        ) != 0)
+        {
+            BANKER_FAIL("decryption failed.");
+        }
+    }
+}
 
 BANKER_TEST_CASE(encryption_and_decryption, hello_world, "Tries to encrypt and decrypt \"Hello world!\"")
 {
