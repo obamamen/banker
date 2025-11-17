@@ -103,6 +103,17 @@ namespace banker::networker
             return {s,t + s};
         }
 
+        void buffer(
+            const packet& packet)
+        {
+            auto stream = packet.serialize_to_stream();
+            _send_buffer.push_back(
+                (tcp::out_buffer){
+                    stream.data(),
+                    stream.size()
+                });
+        }
+
         /// @brief tries to flush send buffer.
         /// tries to flush send buffer by sending into socket.
         /// @param socket socket to try to flush into.

@@ -26,60 +26,58 @@
 using namespace banker;
 
 
-[[noreturn]] void server()
+void server()
 {
-    networker::packet_stream_host h{};
-    bool w = h.create(5050,"127.0.0.1");
-    if (w) std::cout << "Server listening on port 5050" << std::endl;
-    networker::packet_stream ss;
+    networker::server server(5050);
+    server.set_on_receive([&server](networker::server::client c, networker::packet packet)
+    {
+        std::string s = packet.read<std::string>();
+        std::cout << c << ": " << s << std::endl;
+
+        networker::packet op{};
+        op.write(std::string("hello client"));
+
+        server.send_packet(c,op);
+    });
+
+    // s.set_on_connect([&s](networker::server::client c)
+    // {
+    //     networker::packet op{};
+    //     op.write(std::string("hello client"));
+    //
+    //     s.send_packet(c,op);
+    // });
+
     while (true)
     {
-        ss = h.accept();
-        if (ss.is_valid())
-        {
-            std::cout << "client_connected" << std::endl;
-            break;
-        }
+        server.tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    std::this_thread::sleep_for(std::chrono_literals::operator ""ms(100));
-
-    // while (true)
-    // {
-    //     ss.tick();
-    //     networker::packet p = ss.receive_packet();
-    //     if (p.is_valid())
-    //     {
-    //         std::cout << "packet encrypted: " << format_bytes::to_hex(p.get_data()) << std::endl;
-    //         networker::crypto_core::decrypt_packet(p,{1},{2});
-    //         std::cout << "packet plaintext: " << format_bytes::to_hex(p.get_data()) << std::endl;
-    //
-    //         std::cout << p.read<std::string>() << std::endl;
-    //     }
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    // }
 }
 
 void client()
 {
-    tester::run_test({"packet_encryption_and_decryption"}, false);
-    // networker::packet_stream_core core{};
-    // networker::socket s{};
-    // s.create();
-    // bool con = s.connect("127.0.0.1",5050);
-    // if (!con) std::cerr << "cant connect to server!" << std::endl;
-    //
-    // std::string msg = "Hello World!";
-    // networker::packet p{};
-    // p.write(msg);
-    //
-    // networker::crypto_core::encrypt_send(
-    //     s,
-    //     p,
-    //     {1},
-    //     core,
-    //     {2});
+    networker::client client{"127.0.0.1",5050};
+    client.set_on_receive([](networker::packet p)
+    {
+        std::cout << "Received: " << p.read<std::string>() << std::endl;
+    });
+    client.initiate_handshake();
 
+    bool send = false;
+
+    while (true)
+    {
+        if (!send && client.allowed_to_send())
+        {
+            networker::packet op{};
+            op.write(std::string("hello server"));
+            client.send_packet(op);
+            send = true;
+        }
+        client.tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
 
 

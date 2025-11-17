@@ -83,9 +83,9 @@ namespace banker::networker
             return n;
         }
 
-        void increment_incoming() { _in_counter++; }
+        void increment_incoming(const size_t c = 1) { _in_counter+=c; }
 
-        void increment_outgoing() { _out_counter++; }
+        void increment_outgoing(const size_t c = 1) { _out_counter+=c; }
 
     private:
         uint64_t _out_counter{0};

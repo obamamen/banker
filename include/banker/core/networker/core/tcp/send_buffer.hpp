@@ -28,6 +28,11 @@ namespace banker::networker::tcp
             _offset = 0;
         }
 
+        explicit out_buffer(const uint8_t* data, const size_t size)
+        {
+            _buffer.insert(_buffer.end(), data, data + size);
+        }
+
         void append(const uint8_t* data, const size_t size)
         {
             _buffer.insert(_buffer.end(), data, data + size);
