@@ -57,6 +57,8 @@ void server()
 
 void client()
 {
+    tester::run_test(false);
+
     networker::client client{"127.0.0.1",5050};
     client.set_on_receive([](networker::packet p)
     {
