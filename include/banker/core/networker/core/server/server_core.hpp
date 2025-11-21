@@ -11,14 +11,18 @@
 #include <cstdint>
 
 #include "banker/core/networker/core/socket/socket.hpp"
+#include "banker/core/networker/core/server/client_manager.hpp"
 
 namespace banker::networker
 {
     class server_core
     {
     public:
-        using client_id = uint64_t;
-        static constexpr client_id invalid_client_id = static_cast<client_id>( ~0 );
+        struct core_client_data
+        {
+            socket socket{socket::invalid_socket};
+            bool marked_for_disconnect{false};
+        };
 
         struct poll_event
         {
@@ -29,12 +33,6 @@ namespace banker::networker
         };
 
     private:
-        struct client_info
-        {
-            client_id id;
-            networker::socket sock;
-            bool marked_for_disconnect{false};
-        };
 
     public:
         server_core();
@@ -45,9 +43,10 @@ namespace banker::networker
 
         server_core(server_core&&)                  = default;
         server_core& operator=(server_core&&)       = default;
+
     private:
         networker::socket _host{};
-        std::map<client_id, client_info> _clients{};
+        client_manager<core_client_data> _clients{};
     };
 }
 

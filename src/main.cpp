@@ -15,6 +15,7 @@
 #include "banker/core/crypto/crypter.hpp"
 
 #include "banker/core/networker/core/packet.hpp"
+#include "banker/core/networker/core/server/client_manager.hpp"
 #include "banker/core/networker/core/tcp/packet_stream.hpp"
 #include "banker/core/networker/crypto/crypto_channel_core.hpp"
 #include "banker/tester/tester.hpp"
@@ -22,6 +23,7 @@
 #include "banker/tests/encryption_tests.hpp"
 #include "banker/tests/handshake_tests.hpp"
 #include "banker/tests/packet_tests.hpp"
+#include "banker/tests/client_manager_tests.hpp"
 
 using namespace banker;
 
@@ -57,29 +59,30 @@ void server()
 
 void client()
 {
-    tester::run_test(false);
+    tester::run_test(true);
 
-    networker::client client{"127.0.0.1",5050};
-    client.set_on_receive([](networker::packet p)
-    {
-        std::cout << "Received: " << p.read<std::string>() << std::endl;
-    });
-    client.initiate_handshake();
-
-    bool send = false;
-
-    while (true)
-    {
-        if (!send && client.allowed_to_send())
-        {
-            networker::packet op{};
-            op.write(std::string("hello server"));
-            client.send_packet(op);
-            send = true;
-        }
-        client.tick();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    //
+    // networker::client client{"127.0.0.1",5050};
+    // client.set_on_receive([](networker::packet p)
+    // {
+    //     std::cout << "Received: " << p.read<std::string>() << std::endl;
+    // });
+    // client.initiate_handshake();
+    //
+    // bool send = false;
+    //
+    // while (true)
+    // {
+    //     if (!send && client.allowed_to_send())
+    //     {
+    //         networker::packet op{};
+    //         op.write(std::string("hello server"));
+    //         client.send_packet(op);
+    //         send = true;
+    //     }
+    //     client.tick();
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // }
 }
 
 
