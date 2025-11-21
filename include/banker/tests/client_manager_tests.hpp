@@ -94,7 +94,7 @@ BANKER_TEST_CASE(client_manager, add_delete, "Adds some clients and delets some.
     add_delete_data* f = cm.get_client(id);
     if (!f) BANKER_FAIL("Couldn't find ", new_d_name,".");
     BANKER_MSG("id: ",id," name = ",f->name);
-    if (new_d.name != f->name) BANKER_FAIL("Found client hasnt the same data (name).");
+    if (new_d_name != f->name) BANKER_FAIL("Found client hasnt the same data (name).");
 }
 
 #endif //BANKER_CLIENT_MANAGER_TESTS_HPP

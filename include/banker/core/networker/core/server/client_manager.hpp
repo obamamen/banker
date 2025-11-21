@@ -22,67 +22,54 @@ namespace banker::networker
     class client_manager
     {
     public:
-        client_manager()                                    = default;
-        ~client_manager()                                   = default;
+        client_manager() = default;
 
-        client_manager(const client_manager&)               = delete;
-        client_manager& operator=(const client_manager&)    = delete;
-
-        client_manager(client_manager&&)                    = default;
-        client_manager& operator=(client_manager&&)         = default;
-
-        client_id add_client(const client_data_t&& client_data)
+        client_id add_client(client_data_t&& data)
         {
             const client_id id = _next_id++;
 
-            _clients.push_back( std::move(client_data) );
-            _index[id] = _clients.size() - 1;
+            _clients.emplace_back(std::move(data));
+            const size_t idx = _clients.size() - 1;
+
+            _id_to_index[id] = idx;
+            _index_to_id.push_back(id);
 
             return id;
         }
 
         client_data_t* get_client(const client_id id)
         {
-            if (!_index.contains(id)) return nullptr;
-
-            assert(_index[id] < _clients.size());
-
-            return &_clients[_index[id]];
+            const auto it = _id_to_index.find(id);
+            if (it == _id_to_index.end()) return nullptr;
+            return &_clients[it->second];
         }
 
         void remove_client(const client_id id)
         {
-            assert(_index.contains(id));
-            assert(_index[id] < _clients.size());
+            auto it = _id_to_index.find(id);
+            if (it == _id_to_index.end()) return;
+            size_t idx = it->second;
 
-            const auto it = _index.find(id);
-            if (it == _index.end())
-                return;
-
-            size_t idx  = it->second;
-            size_t last = _clients.size() - 1;
-
+            const size_t last = _clients.size() - 1;
             if (idx != last)
             {
                 std::swap(_clients[idx], _clients[last]);
-
-                for (auto& [other_id, other_idx] : _index)
-                    if (other_idx == last)
-                    {
-                        other_idx = idx;
-                        break;
-                    }
-
+                const client_id moved_id = _index_to_id[last];
+                _id_to_index[moved_id] = idx;
+                _index_to_id[idx] = moved_id;
             }
 
             _clients.pop_back();
-            _index.erase(it);
+            _index_to_id.pop_back();
+            _id_to_index.erase(id);
         }
 
     private:
         client_id _next_id{0};
-        std::vector<client_data_t> _clients{};
-        std::unordered_map<client_id, size_t> _index{};
+
+        std::vector<client_data_t>              _clients;
+        std::vector<client_id>                  _index_to_id;
+        std::unordered_map<client_id, size_t>   _id_to_index;
     };
 }
 

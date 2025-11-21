@@ -24,6 +24,7 @@
 #include "banker/tests/handshake_tests.hpp"
 #include "banker/tests/packet_tests.hpp"
 #include "banker/tests/client_manager_tests.hpp"
+#include "banker/tests/robin_hash_tests.hpp"
 
 using namespace banker;
 
@@ -59,7 +60,7 @@ void server()
 
 void client()
 {
-    tester::run_test(true);
+    tester::run_test({"robin_hash"},false);
 
     //
     // networker::client client{"127.0.0.1",5050};
