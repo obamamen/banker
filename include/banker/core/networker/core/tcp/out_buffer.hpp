@@ -1,5 +1,5 @@
 /* ================================== *\
- @file     send_buffer.hpp
+ @file     out_buffer.hpp
  @project  banker
  @author   moosm
  @date     11/11/2025
@@ -44,7 +44,7 @@ namespace banker::networker::tcp
         }
 
         void append_remaining(
-            uint8_t* data,
+            const uint8_t* data,
             const size_t size,
             const size_t already_sent)
         {

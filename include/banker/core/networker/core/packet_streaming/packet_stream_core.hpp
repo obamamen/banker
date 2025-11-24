@@ -12,8 +12,8 @@
 #include <deque>
 #include <vector>
 
-#include "banker/core/networker/core/tcp/stream_handler.hpp"
-#include "banker/core/networker/core/tcp/send_buffer.hpp"
+#include "banker/core/networker/core/packet_streaming/packet_stream_handler.hpp"
+#include "banker/core/networker/core/tcp/out_buffer.hpp"
 #include "banker/shared/compat.hpp"
 
 namespace banker::networker

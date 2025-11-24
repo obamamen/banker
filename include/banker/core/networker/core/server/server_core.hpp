@@ -21,15 +21,19 @@ namespace banker::networker
         struct core_client_data
         {
             socket socket{socket::invalid_socket};
-            bool marked_for_disconnect{false};
         };
 
         struct poll_event
         {
-            client_id id = invalid_client_id;
-            bool readable{false};
-            bool writable{false};
-            bool error{false};
+            client_id id    {invalid_client_id};
+            bool readable   {false};
+            bool writable   {false};
+            bool error      {false};
+        };
+
+        class poll_group
+        {
+            std::vector< core_client_data* > _clients{};
         };
 
     private:
@@ -44,9 +48,6 @@ namespace banker::networker
         server_core(server_core&&)                  = default;
         server_core& operator=(server_core&&)       = default;
 
-    private:
-        networker::socket _host{};
-        client_manager<core_client_data> _clients{};
     };
 }
 

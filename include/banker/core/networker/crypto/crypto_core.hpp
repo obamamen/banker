@@ -11,7 +11,7 @@
 #include <cstring>
 
 #include "banker/core/crypto/crypter.hpp"
-#include "banker/core/networker/core/packet.hpp"
+#include "banker/core/networker/core/packet/packet.hpp"
 
 namespace banker::networker
 {

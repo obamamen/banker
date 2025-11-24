@@ -14,10 +14,10 @@
 
 #include "banker/core/networker/core/socket/socket.hpp"
 
-#include "banker/core/networker/core/tcp/packet_stream_core.hpp"
-#include "banker/core/networker/core/tcp/stream_handler.hpp"
+#include "banker/core/networker/core/packet_streaming/packet_stream_core.hpp"
+#include "banker/core/networker/core/packet_streaming/packet_stream_handler.hpp"
 
-#include "banker/core/networker/core/packet.hpp"
+#include "banker/core/networker/core/packet/packet.hpp"
 
 namespace banker::networker
 {

@@ -1,6 +1,9 @@
-//
-// Created by moosm on 11/5/2025.
-//
+/* ================================== *\
+ @file     packet_stream_handler.hpp
+ @project  banker
+ @author   moosm
+ @date     11/5/2025
+*\ ================================== */
 
 #ifndef BANKER_STREAM_HANDLING_HPP
 #define BANKER_STREAM_HANDLING_HPP
@@ -8,7 +11,7 @@
 
 #include <assert.h>
 
-#include "banker/core/networker/core/packet.hpp"
+#include "banker/core/networker/core/packet/packet.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 
 namespace banker::networker::tcp
