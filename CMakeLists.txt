@@ -35,3 +35,4 @@ endfunction()
 
 add_banker_variant(banker_client BUILD_CLIENT)
 add_banker_variant(banker_server BUILD_SERVER)
+add_banker_variant(banker_tests  BUILD_TESTS)

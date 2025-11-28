@@ -8,6 +8,8 @@
 #ifndef BANKER_PROGRAM_MACROS_HPP
 #define BANKER_PROGRAM_MACROS_HPP
 
+#define BANKER_SHOULD(thing) do { if (!(thing)) throw std::runtime_error(#thing);  } while(0)
+
 #define BANKER_TERMINATE(msg)                       \
 do                                                  \
 {                                                   \
