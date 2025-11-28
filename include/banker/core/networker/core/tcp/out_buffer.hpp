@@ -33,23 +33,23 @@ namespace banker::networker::tcp
             _buffer.insert(_buffer.end(), data, data + size);
         }
 
-        void append(const uint8_t* data, const size_t size)
-        {
-            _buffer.insert(_buffer.end(), data, data + size);
-        }
-
-        void append(const std::vector<uint8_t>& data)
-        {
-            _buffer.insert(_buffer.end(), data.begin(), data.end());
-        }
-
-        void append_remaining(
-            const uint8_t* data,
-            const size_t size,
-            const size_t already_sent)
-        {
-            append(data + already_sent, size - already_sent);
-        }
+        // void append(const uint8_t* data, const size_t size)
+        // {
+        //     _buffer.insert(_buffer.end(), data, data + size);
+        // }
+        //
+        // void append(const std::vector<uint8_t>& data)
+        // {
+        //     _buffer.insert(_buffer.end(), data.begin(), data.end());
+        // }
+        //
+        // void append_remaining(
+        //     const uint8_t* data,
+        //     const size_t size,
+        //     const size_t already_sent)
+        // {
+        //     append(data + already_sent, size - already_sent);
+        // }
 
         uint8_t* data() const
         {
