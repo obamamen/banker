@@ -10,6 +10,7 @@
 
 #include <thread>
 
+#include "banker/core/networker/core/packet_streaming/packet_stream_core.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 #include "banker/core/networker/core/tcp/stream_core.hpp"
 #include "banker/shared/program_macros.hpp"
@@ -31,11 +32,11 @@ namespace stream_network_tests
     }
 }
 
-BANKER_TEST_CASE(stream_network_tests,hello_world,
+BANKER_TEST_CASE(stream_network_tests, hello_world,
     "Streams a simple string from server to client and vise versa.")
 {
     constexpr short port = 4444;
-    constexpr size_t millis_timeout = 2;
+    constexpr size_t millis_timeout = 1;
 
     std::string server_string = "Hello, mr. Client!";
     std::string client_string = "Hello, mr. Server!";
@@ -78,7 +79,7 @@ BANKER_TEST_CASE(stream_network_tests,hello_world,
             if (server_client_socket.is_valid())
             {
                 BANKER_MSG("Client connected!");
-                server_stream.send_data(
+                server_stream.write(
                     server_client_socket,
                     reinterpret_cast<uint8_t*>( server_string.data() ),
                     server_string.size()+1);
@@ -87,7 +88,7 @@ BANKER_TEST_CASE(stream_network_tests,hello_world,
 
         if (!client_sent && client_socket.is_valid())
         {
-            client_stream.send_data(
+            client_stream.write(
                 client_socket,
                 reinterpret_cast<uint8_t*>( client_string.data() ),
                 client_string.size()+1);
@@ -138,6 +139,97 @@ BANKER_TEST_CASE(stream_network_tests,hello_world,
                 }
 
                 client_received = true;
+            }
+        }
+    }
+}
+
+BANKER_TEST_CASE(packet_stream_network_tests, _1,
+    "Streams a packet from server to client and vise versa.")
+{
+    using namespace banker;
+    using namespace banker::networker;
+    using networker::socket;
+
+    constexpr short port = 4444;
+    constexpr size_t millis_timeout = 1;
+
+    std::string server_string = "Hello client!";
+    std::string client_string = "Hello server!";
+
+    std::string type_string_test = "<MSG>";
+
+    socket server_socket = packet_stream_core::generate_server_socket("0.0.0.0", port);
+    packet_stream_core client_1_packet_stream;
+    socket client_1;
+
+    socket client_socket = packet_stream_core::generate_client_socket("127.0.0.1", port);
+    packet_stream_core client_packet_stream;
+
+    const auto start_time = std::chrono::high_resolution_clock::now();
+
+    bool client_done = false;
+    bool server_done = false;
+
+    while ( (!client_done) || (!server_done) )
+    {
+        if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::milliseconds(millis_timeout))
+        {
+            BANKER_FAIL("Took longer than ", millis_timeout, " ms.");
+        }
+
+        { // server
+            socket client = server_socket.accept();
+            if (client.is_valid())
+            {
+                client_1 = std::move(client);
+
+                BANKER_MSG("Client connected!");
+                packet p;
+                p.write(type_string_test);
+                p.write(server_string);
+                client_1_packet_stream.write_packet(client_1,p);
+            }
+
+            if ( client_1.is_valid() )
+            {
+                packet p = client_1_packet_stream.read_packet(client_1);
+                if (p.is_valid())
+                {
+                    auto t = p.read<std::string>();
+                    auto s = p.read<std::string>();
+                    BANKER_MSG("[server] received ", t ," ", s);
+
+                    BANKER_CHECK(s == client_string);
+
+                    server_done = true;
+                }
+
+                client_1_packet_stream.tick(client_1);
+            }
+        }
+
+        { // client
+            if (client_socket.is_valid())
+            {
+                packet p = client_packet_stream.read_packet(client_socket);
+                if (p.is_valid())
+                {
+                    auto t = p.read<std::string>();
+                    auto s = p.read<std::string>();
+                    BANKER_MSG("[client] received ", t ," ", s);
+
+                    BANKER_CHECK(s == server_string);
+
+                    client_done = true;
+
+                    packet to_server;
+                    to_server.write(type_string_test);
+                    to_server.write(client_string);
+                    client_packet_stream.write_packet(client_socket, to_server);
+                }
+
+                client_packet_stream.tick(client_socket);
             }
         }
     }

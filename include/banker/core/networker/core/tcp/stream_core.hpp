@@ -10,8 +10,8 @@
 
 #include <deque>
 
-#include "out_buffer.hpp"
-#include "stream_handler.hpp"
+#include "banker/core/networker/core/tcp/out_buffer.hpp"
+#include "banker/core/networker/core/tcp/stream_handler.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 
 namespace banker::networker
@@ -19,11 +19,41 @@ namespace banker::networker
     class stream_core
     {
     public:
-        struct send_data
+        struct write_response
         {
             bool sent_current_request{false};
-            size_t total_send_requests{0};
+            size_t total_send_buffers{0};
         };
+    public:
+
+        static socket generate_client_socket(
+            const std::string& ip,
+            const unsigned short port)
+        {
+            socket s{};
+
+            if ( !s.create(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) return socket{};
+            if (!s.connect(ip, port) )                          return socket{};
+            if (!s.set_blocking(false) )                        return socket{};
+
+            return s;
+        }
+
+        static socket generate_server_socket(
+            const std::string& ip,
+            const unsigned short port,
+            const int backlog = 1024)
+        {
+            socket s{};
+
+            if ( !s.create(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) return socket{};
+            if ( !s.set_reuse_address(true) )                   return socket{};
+            if ( !s.bind(port, ip) )                            return socket{};
+            if ( !s.listen(backlog) )                           return socket{};
+            if ( !s.set_blocking(false) )                       return socket{};
+
+            return s;
+        }
 
         bool tick_receive(socket& socket)
         {
@@ -37,10 +67,22 @@ namespace banker::networker
             return _receive_buffer;
         }
 
-        send_data send_data(socket& socket, uint8_t* data, const size_t size)
+        write_response write(
+            socket& socket,
+            uint8_t* data,
+            const size_t size)
         {
             const auto t = flush_send_buffer(socket);
-            auto s = _send(socket, socket::iovec_c{data,size});
+            const auto s = _send(socket, socket::iovec_c{data,size});
+            return {s,t+s};
+        }
+
+        write_response write_v(
+            socket& socket,
+            const std::span<socket::iovec_c> buffers)
+        {
+            const auto t = flush_send_buffer(socket);
+            const auto s = _send(socket, buffers);
             return {s,t+s};
         }
 
@@ -84,7 +126,7 @@ namespace banker::networker
         {
             const int sent = socket.send(
                 buffer.data,
-                1);
+                buffer.len);
 
             if (sent < 0) return false;
             BANKER_LIKELY if (sent == static_cast<int>(buffer.len)) return true;
