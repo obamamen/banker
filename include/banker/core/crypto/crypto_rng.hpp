@@ -1,6 +1,9 @@
-//
-// Created by moosm on 11/4/2025.
-//
+/* ================================== *\
+ @file     crypto_rng.hpp
+ @project  banker
+ @author   moosm
+ @date     11/4/2025
+*\ ================================== */
 
 #ifndef BANKER_CRYPTO_RNG_HPP
 #define BANKER_CRYPTO_RNG_HPP

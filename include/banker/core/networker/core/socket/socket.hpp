@@ -1,6 +1,9 @@
-//
-// Created by moosm on 10/31/2025.
-//
+/* ================================== *\
+ @file     socket.hpp
+ @project  banker
+ @author   moosm
+ @date     10/31/2025
+*\ ================================== */
 
 #ifndef BANKER_SOCKET_HPP
 #define BANKER_SOCKET_HPP

@@ -1,6 +1,9 @@
-//
-// Created by moosm on 11/4/2025.
-//
+/* ================================== *\
+ @file     packet.hpp
+ @project  banker
+ @author   moosm
+ @date     11/4/2025
+*\ ================================== */
 
 #ifndef BANKER_PACKET_HPP
 #define BANKER_PACKET_HPP

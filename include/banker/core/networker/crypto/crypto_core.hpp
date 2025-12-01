@@ -7,6 +7,7 @@
 
 #ifndef BANKER_CRYPTO_CORE_HPP
 #define BANKER_CRYPTO_CORE_HPP
+
 #include <cstdint>
 #include <cstring>
 
@@ -59,7 +60,7 @@ namespace banker::networker
                 hmac);
         }
 
-        crypter::nonce generate_incoming_nonce() const
+        BANKER_NODISCARD crypter::nonce generate_incoming_nonce() const
         {
             crypter::nonce n{};
 
@@ -71,7 +72,7 @@ namespace banker::networker
             return n;
         }
 
-        crypter::nonce generate_outgoing_nonce() const
+        BANKER_NODISCARD crypter::nonce generate_outgoing_nonce() const
         {
             crypter::nonce n{};
 

@@ -11,7 +11,7 @@
 #include <deque>
 
 #include "out_buffer.hpp"
-#include "banker/core/networker/core/packet_streaming/packet_stream_handler.hpp"
+#include "stream_handler.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 
 namespace banker::networker
@@ -89,9 +89,9 @@ namespace banker::networker
             if (sent < 0) return false;
             BANKER_LIKELY if (sent == static_cast<int>(buffer.len)) return true;
 
-            _send_buffer.push_back(tcp::out_buffer(
+            _send_buffer.emplace_back(
                 static_cast<const uint8_t*>(buffer.data) + sent,
-                buffer.len - static_cast<size_t>(sent)));
+                buffer.len - static_cast<size_t>(sent));
 
             return false;
         }
@@ -123,16 +123,16 @@ namespace banker::networker
 
                 if (remaining > 0)
                 {
-                    _send_buffer.push_back(tcp::out_buffer(
+                    _send_buffer.emplace_back(
                         static_cast<const uint8_t*>(buffer.data) + remaining,
-                        buffer.len - remaining));
+                        buffer.len - remaining);
                     remaining = 0;
                 }
                 else
                 {
-                    _send_buffer.push_back(tcp::out_buffer(
+                    _send_buffer.emplace_back(
                         static_cast<const uint8_t*>(buffer.data),
-                        buffer.len));
+                        buffer.len);
                 }
             }
 

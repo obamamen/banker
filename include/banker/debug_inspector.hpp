@@ -1,6 +1,9 @@
-//
-// Created by moosm on 11/3/2025.
-//
+/* ================================== *\
+ @file     debug_inspector.hpp
+ @project  banker
+ @author   moosm
+ @date     11/3/2025
+*\ ================================== */
 
 #ifndef BANKER_DEBUG_INSPECTOR_HPP
 #define BANKER_DEBUG_INSPECTOR_HPP

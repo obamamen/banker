@@ -1,10 +1,12 @@
-//
-// Created by moosm on 11/3/2025.
-//
+/* ================================== *\
+ @file     error.hpp
+ @project  banker
+ @author   moosm
+ @date     11/3/2025
+*\ ================================== */
 
 #ifndef BANKER_ERROR_HPP
 #define BANKER_ERROR_HPP
-
 
 #ifdef _WIN32
     #include <winsock2.h>

@@ -1,6 +1,9 @@
-//
-// Created by moosm on 11/5/2025.
-//
+/* ================================== *\
+ @file     crypter.hpp
+ @project  banker
+ @author   moosm
+ @date     11/5/2025
+*\ ================================== */
 
 #ifndef BANKER_CRYPTER_HPP
 #define BANKER_CRYPTER_HPP

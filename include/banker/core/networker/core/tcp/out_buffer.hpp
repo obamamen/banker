@@ -51,12 +51,12 @@ namespace banker::networker::tcp
         //     append(data + already_sent, size - already_sent);
         // }
 
-        uint8_t* data() const
+        BANKER_NODISCARD uint8_t* data() const
         {
             return const_cast<uint8_t *>(_buffer.data() + _offset);
         }
 
-        size_t size() const
+        BANKER_NODISCARD size_t size() const
         {
             return _buffer.size() - _offset;
         }
@@ -71,7 +71,7 @@ namespace banker::networker::tcp
             }
         }
 
-        bool empty() const
+        BANKER_NODISCARD bool empty() const
         {
             return size() == 0;
         }

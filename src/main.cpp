@@ -13,9 +13,8 @@
 
 #include "banker/core/networker/core/packet/packet.hpp"
 #include "banker/core/networker/core/server/client_manager.hpp"
-#include "banker/core/networker/core/packet_streaming/packet_stream.hpp"
 #include "banker/core/networker/core/tcp/stream_core.hpp"
-#include "banker/core/networker/crypto/crypto_channel_core.hpp"
+#include "../old/crypto/crypto_channel_core.hpp"
 #include "banker/tester/tester.hpp"
 
 #include "banker/tests/encryption_tests.hpp"
