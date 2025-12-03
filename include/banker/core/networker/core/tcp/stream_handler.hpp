@@ -19,7 +19,7 @@ namespace banker::networker::tcp
     /// @brief streams all bytes from the socket into buffer.
     /// @return if there is an actual error, (would block not included).
     bool inline stream_socket(
-        const socket& socket,
+        socket& socket,
         std::vector<uint8_t>& stream)
     {
         assert(socket.is_valid());

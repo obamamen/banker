@@ -32,7 +32,8 @@ namespace banker::networker
         {
             socket s{};
 
-            if ( !s.create(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) return socket{};
+            if ( !s.create(
+                socket::domain::inet, socket::type::stream) )   return socket{};
             if (!s.connect(ip, port) )                          return socket{};
             if (!s.set_blocking(false) )                        return socket{};
 
@@ -46,7 +47,8 @@ namespace banker::networker
         {
             socket s{};
 
-            if ( !s.create(AF_INET, SOCK_STREAM, IPPROTO_TCP) ) return socket{};
+            if ( !s.create(
+                socket::domain::inet, socket::type::stream) )   return socket{};
             if ( !s.set_reuse_address(true) )                   return socket{};
             if ( !s.bind(port, ip) )                            return socket{};
             if ( !s.listen(backlog) )                           return socket{};

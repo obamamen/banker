@@ -42,7 +42,7 @@ int main()
 #elif defined(BUILD_SERVER)
     server();
 #elif defined(BUILD_TESTS)
-    tester::run_test(false);
+    tester::run_test(true);
 #else
     std::cerr << "Unknown mode\n";
     return 1;

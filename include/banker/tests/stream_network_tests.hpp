@@ -199,7 +199,8 @@ BANKER_TEST_CASE(packet_stream_network_tests, _1,
                     auto t = p.read<std::string>();
                     auto s = p.read<std::string>();
                     BANKER_MSG("[server] received ", t ," ", s);
-
+                    BANKER_MSG("LOCAL: ", client_1.get_local_info().to_string());
+                    BANKER_MSG("PEER:  ", client_1.get_peer_info().to_string());
                     BANKER_CHECK(s == client_string);
 
                     server_done = true;
@@ -219,6 +220,8 @@ BANKER_TEST_CASE(packet_stream_network_tests, _1,
                     auto s = p.read<std::string>();
                     BANKER_MSG("[client] received ", t ," ", s);
 
+                    BANKER_MSG("LOCAL: ", client_socket.get_local_info().to_string());
+                    BANKER_MSG("PEER:  ", client_socket.get_peer_info().to_string());
                     BANKER_CHECK(s == server_string);
 
                     client_done = true;
@@ -233,6 +236,8 @@ BANKER_TEST_CASE(packet_stream_network_tests, _1,
             }
         }
     }
+
+    BANKER_FAIL();
 }
 
 #endif //BANKER_STREAM_NETWORK_TESTS_HPP

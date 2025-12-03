@@ -41,7 +41,39 @@ namespace banker::networker
     {
     public:
         constexpr static socket_t invalid_socket = BANKER_INVALID_SOCKET;
-        constexpr static socket_t socket_error = BANKER_SOCKET_ERROR;
+        constexpr static int socket_error = BANKER_SOCKET_ERROR;
+
+        /// @brief domain types.
+        enum class domain : int
+        {
+            invalid = -1,
+
+            inet = AF_INET,
+            ipv4 = AF_INET,
+
+            inet6 = AF_INET6,
+            ipv6 = AF_INET6,
+        };
+
+        /// @brief socket types.
+        enum class type : int
+        {
+            invalid = -1,
+
+            stream = SOCK_STREAM,
+        };
+
+        /// @brief protocol types.
+        enum class protocol : int
+        {
+            invalid = -1,
+
+            /// @brief the OS selects based on socket::type, should be used.
+            unspecified = 0,
+            system_default = unspecified,
+
+            tcp = IPPROTO_TCP,
+        };
 
         enum class receive_result
         {
@@ -50,9 +82,46 @@ namespace banker::networker
             error,
         };
 
+        /// @brief info about 1 way connection.
+        struct connection_info
+        {
+            std::string ip_address{};
+            uint16_t port{0};
+            domain domain{domain::invalid};
+
+            /// @brief turns any connection_info state into a string.
+            /// @return string.
+            [[nodiscard]] std::string to_string() const
+            {
+                if ( !this->is_valid() )
+                {
+                    return std::string{"(invalid)"};
+                }
+
+                if (domain == domain::inet6)
+                    return "[" + ip_address + "]:" + std::to_string(port);
+
+                return ip_address + ":" + std::to_string(port);
+            }
+
+            /// @brief checks if this state is valid.
+            /// @return is valid.
+            [[nodiscard]] bool is_valid() const
+            {
+                if (this->domain == domain::invalid) return false;
+                if (this->ip_address.empty()) return false;
+
+                return true;
+            }
+        };
+
+        /// @brief struct use for vectorized IO, like sendv.
         struct iovec_c
         {
+            /// @brief raw data pointer.
             const void* data;
+
+            /// @brief how many bytes to include, starting from data.
             size_t len;
         };
 
@@ -118,18 +187,21 @@ namespace banker::networker
         }
 
         /// @brief constructs the socket class.
-        /// @param domain which domain to use (AF_INET/ipv4 is default).
-        /// @param type which type to use (SOCK_STREAM for TCP, SOCK_DGRAM for UDP)
-        /// @param protocol what protocol to use (IPPROTO_TCP, IPPROTO_UDP)
-        ///     Pass 0 to use the default protocol for the given type.
+        /// @param domain what domain to use.
+        /// @param type which type to use.
+        /// @param protocol what protocol to use.
         /// @return true -> succeeded, false -> failed.
         [[nodiscard]] bool create(
-            const int domain = AF_INET,
-            const int type = SOCK_STREAM,
-            const int protocol = 0) noexcept
+            const domain domain = domain::inet,
+            const type type = type::stream,
+            const protocol protocol = protocol::system_default) noexcept
         {
-            _socket = ::socket(domain, type, protocol);
-            _domain = domain;
+            _socket = ::socket(
+                static_cast<int>(domain),
+                static_cast<int>(type),
+                static_cast<int>(protocol));
+
+            _domain = static_cast<int>(domain);
             return is_valid();
         }
 
@@ -137,7 +209,9 @@ namespace banker::networker
         /// @param host the server hostname or IP address to connect to (e.g., "127.0.0.1").
         /// @param port the port number on the server to connect to
         /// @return true -> succeeded, false -> failed.
-        [[nodiscard]] bool connect(const std::string& host, const u_short port) const
+        [[nodiscard]] bool connect(
+            const std::string& host,
+            const u_short port)
         {
             if (!is_valid())
             {
@@ -167,7 +241,7 @@ namespace banker::networker
         /// @return true -> succeeded, false -> failed.
         [[nodiscard]] bool bind(
             const u_short port,
-            const std::string& ip = "0.0.0.0") const
+            const std::string& ip = "0.0.0.0")
         {
             sockaddr_in local_addr{};
             local_addr.sin_family = static_cast<short>(_domain);
@@ -183,7 +257,7 @@ namespace banker::networker
         /// @brief sets the sockets blocking flag.
         /// @param blocking if true -> blocks (socket default) if false -> non-blocking (function default).
         /// @return true -> succeeded, false -> failed.
-        [[nodiscard]] bool set_blocking(bool blocking = false) const
+        [[nodiscard]] bool set_blocking(bool blocking = false)
         {
             if (!is_valid()) return false;
 
@@ -201,7 +275,7 @@ namespace banker::networker
         /// @brief puts the socket into listening mode to accept incoming client connections.
         /// @param backlog the maximum number of pending connections the queue can hold.
         /// @return true -> succeeded, false -> failed.
-        [[nodiscard]] bool listen(const int backlog = 1) const
+        [[nodiscard]] bool listen(const int backlog = 1)
         {
             return ::listen(_socket, backlog) >= 0;
         }
@@ -209,7 +283,7 @@ namespace banker::networker
         /// @brief accepts an incoming client connection.
         /// @return a new `socket` object representing the accepted client connection.
         ///         if no connection is available or an error occurs, the returned socket WILL be default initialized ( check with ::is_valid() ).
-        [[nodiscard]] socket accept() const
+        [[nodiscard]] socket accept()
         {
             sockaddr_storage client_addr{};
             socklen_t len = sizeof(client_addr);
@@ -224,7 +298,7 @@ namespace banker::networker
         /// @param data pointer to a byte in the buffer (should be start).
         /// @param len the number of bytes to send counted from the data pointer (should be buffer length).
         /// @return the number of bytes actually sent, if not ( 0 : disconnect, < 0 : error )
-        [[nodiscard]] int send(const void* data, const size_t len) const
+        [[nodiscard]] int send(const void* data, const size_t len)
         {
             const int n = ::send(_socket, static_cast<const char*>(data), static_cast<int>(len), 0);
             return n;
@@ -236,7 +310,7 @@ namespace banker::networker
         /// @return the number of bytes actually sent, or a negative value if an error occurred.
         [[nodiscard]] int sendv(
             const iovec_c* buffers,
-            const size_t count) const
+            const size_t count)
         {
             if (count == 0 || !buffers) return -1;
 #ifdef _WIN32
@@ -297,7 +371,7 @@ namespace banker::networker
         /// @return the number of bytes actually sent, or a negative value if an error occurred.
         template <size_t N>
         [[nodiscard]] int sendv(
-            const std::pair<const void*, size_t> (&buffers)[N]) const
+            const std::pair<const void*, size_t> (&buffers)[N])
         {
             iovec_c c_buffers[N];
             for (size_t i = 0; i < N; i++) c_buffers[i] = { buffers[i].first, buffers[i].second };
@@ -310,7 +384,7 @@ namespace banker::networker
         /// @param len maximum number of bytes to receive into the buffer.
         /// @return the number of bytes actually received, 0 if the connection was closed,
         ///         or a negative value if an error occurred. (this will be the case in non-blocking mode so check for the would_block error)
-        [[nodiscard]] int recv(void* buffer, const size_t len) const
+        [[nodiscard]] int recv(void* buffer, const size_t len)
         {
             const int n = ::recv(_socket, static_cast<char*>(buffer), static_cast<int>(len), 0);
             return n;
@@ -347,7 +421,7 @@ namespace banker::networker
         /// socket.bind(8080);
         /// socket.listen();
         /// @endcode
-        [[nodiscard]] bool set_reuse_address(const bool enable = true) const
+        [[nodiscard]] bool set_reuse_address(const bool enable = true)
         {
             int opt = enable ? 1 : 0;
 #ifdef _WIN32
@@ -357,16 +431,77 @@ namespace banker::networker
 #endif
         }
 
-        /// @brief gets the string based representation of the internal socket. (don't try constructing `socket_t` from this)
-        /// @return a newly created string that represents the internal socket.
-        [[nodiscard]] std::string to_string() const
+        [[nodiscard]] connection_info get_peer_info() const
         {
-            return { std::to_string(_socket) };
+            if (!is_valid())
+                return {};
+
+            sockaddr_storage addr{};
+            socklen_t addr_len = sizeof(addr);
+
+            if (getpeername(_socket, reinterpret_cast<sockaddr*>(&addr), &addr_len) != 0)
+                return {};
+
+            connection_info info;
+            if (!_extract_info_from_addr(addr, info)) return {};
+
+            return info;
+        }
+
+        [[nodiscard]] connection_info get_local_info() const
+        {
+            if (!is_valid())
+                return {};
+
+            sockaddr_storage addr{};
+            socklen_t addr_len = sizeof(addr);
+
+            if (getsockname(_socket, reinterpret_cast<sockaddr*>(&addr), &addr_len) != 0)
+                return {};
+
+            connection_info info;
+            if (!_extract_info_from_addr(addr, info)) return {};
+
+            return info;
         }
 
     private:
         socket_t _socket{ socket::invalid_socket };
         int _domain{ AF_INET };
+
+        static bool _extract_info_from_addr(
+            const sockaddr_storage& addr,
+            connection_info& info)
+        {
+            if (addr.ss_family == AF_INET)
+            {
+                const auto* addr_in = reinterpret_cast<const sockaddr_in*>(&addr);
+                info.domain = socket::domain::inet;
+                info.port = ntohs(addr_in->sin_port);
+
+                char ip_str[INET_ADDRSTRLEN];
+                if (!inet_ntop(AF_INET, &addr_in->sin_addr, ip_str, sizeof(ip_str)))
+                    return false;
+
+                info.ip_address = ip_str;
+                return true;
+            }
+            else if (addr.ss_family == AF_INET6)
+            {
+                const auto* addr_in6 = reinterpret_cast<const sockaddr_in6*>(&addr);
+                info.domain = socket::domain::inet6;
+                info.port = ntohs(addr_in6->sin6_port);
+
+                char ip_str[INET6_ADDRSTRLEN];
+                if (!inet_ntop(AF_INET6, &addr_in6->sin6_addr, ip_str, sizeof(ip_str)))
+                    return false;
+
+                info.ip_address = ip_str;
+                return true;
+            }
+
+            return false;
+        }
 
         static void _initialize_platform()
         {
