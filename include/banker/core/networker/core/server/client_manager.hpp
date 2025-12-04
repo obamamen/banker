@@ -64,6 +64,16 @@ namespace banker::networker
             _id_to_index.erase(id);
         }
 
+        size_t size() const
+        {
+            return _clients.size();
+        }
+
+        const std::vector<client_id>& get() const
+        {
+            return _index_to_id;
+        }
+
     private:
         client_id _next_id{0};
 

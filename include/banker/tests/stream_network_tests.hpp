@@ -13,6 +13,7 @@
 #include "banker/core/networker/core/packet_streaming/packet_stream_core.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 #include "banker/core/networker/core/tcp/stream_core.hpp"
+#include "banker/core/networker/servers/stream_server.hpp"
 #include "banker/shared/program_macros.hpp"
 #include "banker/tester/tester.hpp"
 
@@ -233,6 +234,68 @@ BANKER_TEST_CASE(packet_stream_network_tests, _1,
                 }
 
                 client_packet_stream.tick(client_socket);
+            }
+        }
+    }
+}
+
+BANKER_TEST_CASE(stream_server, host_1, "idk")
+{
+    using namespace banker;
+    using namespace banker::networker;
+    constexpr size_t millis_timeout = 10;
+
+    constexpr short port = 4444;
+
+    stream_server server;
+    bool could_host = server.host("0.0.0.0",port);
+    BANKER_MSG("[server] = ", server.get_core().get_host().get_local_info().to_string());
+    if (!could_host) BANKER_FAIL("[server] Could not host");
+
+    struct _stream_client{ networker::socket socket{}; stream_core core{}; };
+    std::vector<_stream_client> clients(1);
+
+    for (auto& client : clients)
+    {
+        std::string s = "I am a client!";
+        client.socket = stream_core::generate_client_socket("127.0.0.1", port);
+        client.core.write(
+            client.socket,
+            reinterpret_cast<uint8_t *>(s.data()),
+            s.size()+1);
+    }
+
+
+    const auto start_time = std::chrono::high_resolution_clock::now();
+    while (true)
+    {
+        if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::milliseconds(millis_timeout))
+        {
+            BANKER_FAIL("Took longer than ", millis_timeout, " ms.");
+        }
+
+        const auto c = server.accept_new();
+        if (c != invalid_client_id)
+        {
+            BANKER_MSG("new client = ", c);
+        }
+
+        server.poll();
+        server_poll_result r;
+        while ( server.next_poll_result(r) )
+        {
+            BANKER_MSG(
+                "poll result[", r.client_id, "] = { ",
+                "r: ", r.result.readable,
+                "  w: ", r.result.writable,
+                "  e: ", r.result.error,
+                "  d: ", r.result.disconnected,
+                " }");
+
+            if (r.result.readable)
+            {
+                auto& s = server.receive_from_client(r.client_id);
+                BANKER_MSG("recv: ", s);
             }
         }
     }
