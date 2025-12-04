@@ -253,12 +253,12 @@ BANKER_TEST_CASE(stream_server, host_1, "idk")
     if (!could_host) BANKER_FAIL("[server] Could not host");
 
     struct _stream_client{ networker::socket socket{}; stream_core core{}; };
-    std::vector<_stream_client> clients(1);
+    std::vector<_stream_client> clients(5);
 
     for (auto& client : clients)
     {
-        std::string s = "I am a client!";
         client.socket = stream_core::generate_client_socket("127.0.0.1", port);
+        std::string s = "CLIENT (" + client.socket.get_local_info().to_string() + ")";
         client.core.write(
             client.socket,
             reinterpret_cast<uint8_t *>(s.data()),
@@ -284,17 +284,17 @@ BANKER_TEST_CASE(stream_server, host_1, "idk")
         server_poll_result r;
         while ( server.next_poll_result(r) )
         {
-            BANKER_MSG(
-                "poll result[", r.client_id, "] = { ",
-                "r: ", r.result.readable,
-                "  w: ", r.result.writable,
-                "  e: ", r.result.error,
-                "  d: ", r.result.disconnected,
-                " }");
+            // BANKER_MSG(
+            //     "poll result[", r.client_id, "] = { ",
+            //     "r: ", r.result.readable,
+            //     "  w: ", r.result.writable,
+            //     "  e: ", r.result.error,
+            //     "  d: ", r.result.disconnected,
+            //     " }");
 
             if (r.result.readable)
             {
-                auto& s = server.receive_from_client(r.client_id);
+                auto s = server.receive_from_client(r.client_id).data();
                 BANKER_MSG("recv: ", s);
             }
         }
