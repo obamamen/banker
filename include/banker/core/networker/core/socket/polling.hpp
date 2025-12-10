@@ -13,6 +13,7 @@
 #include <chrono>
 #include <algorithm>
 
+#include "banker/common/debugging/debugger.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
 
 namespace banker::networker
@@ -56,28 +57,42 @@ namespace banker::networker
         {
 #ifdef _WIN32
             _read_offset = 0;
+            BANKER_DEBUG_DO(
+                if (_fds.empty())
+                {
+                    banker::debug::log("_fds.empty()");
+                    return;
+                }
+            );
 
-            if (_fds.empty()) {
-                std::cout << "Warning: polling with 0 sockets\n";
-                return;  // Don't call WSAPoll with empty array
-            }
+            BANKER_DEBUG_DO(
+                for (int i = 0; i < _fds.size(); ++i)
+                {
+                    banker::debug::log(" -  [",i,"]",_fds[i].fd , "\n");
+                }
+            );
 
-            for (int i = 0; i < _fds.size(); ++i)
-            {
-                std::cout << " -  ["<<i<<"]"<<_fds[i].fd << "\n";
-            }
+            BANKER_DEBUG_DO(
+                banker::debug::log("polling " , _fds.size() , " sockets\n");
+                for (size_t i = 0; i < _fds.size(); ++i)
+                {
+                    banker::debug::log("  [" , i , "] fd=" , _fds[i].fd
+                              , " events=" , _fds[i].events , "\n");
+                }
+            );
 
-            std::cout << "Polling " << _fds.size() << " sockets\n";
-            for (size_t i = 0; i < _fds.size(); ++i) {
-                std::cout << "  [" << i << "] fd=" << _fds[i].fd
-                          << " events=" << _fds[i].events << "\n";
-            }
+            const int result = WSAPoll(
+                _fds.data(),
+                static_cast<ULONG>(_fds.size()),
+                static_cast<INT>(timeout));
 
-            int result = WSAPoll(_fds.data(), static_cast<ULONG>(_fds.size()), static_cast<INT>(timeout));
-            if (result == SOCKET_ERROR) {
-                int error = WSAGetLastError();
-                std::cout << "WSAPoll ERROR: " << error << "\n";
-            }
+            BANKER_DEBUG_DO(
+                if (result == SOCKET_ERROR)
+                {
+                    int error = WSAGetLastError();
+                    banker::debug::log("WSAPoll ERROR: " , error , "\n");
+                }
+            );
 #endif
         }
 

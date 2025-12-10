@@ -8,6 +8,12 @@
 #ifndef BANKER_PROGRAM_MACROS_HPP
 #define BANKER_PROGRAM_MACROS_HPP
 
+#ifdef NDEBUG
+#define BANKER_DEBUG_DO(...) do {} while(0)
+#else
+#define BANKER_DEBUG_DO(...) do { __VA_ARGS__; } while(0)
+#endif
+
 #define BANKER_SHOULD(thing) do { if (!(thing)) throw std::runtime_error(#thing);  } while(0)
 
 #define BANKER_TERMINATE(msg)                       \

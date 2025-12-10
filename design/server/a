@@ -1,0 +1,32 @@
+tcp_server_core"doesnt own anything or care about storage"
+{
+    event"valid,error,delete,etc" tick(stream_core&, poll_data&)
+    bool"available" accept(stream_core&)
+}
+
+tcp_server"simple out-of-the-box tcp server with callbacks and such"
+{
+    owns tcp_server_core & managed_storage
+
+    id based api:
+}
+
+(
+    unmanaged_storage"dense with move could have custom data"
+    {
+        poll()
+        bool"available" next_poll_event()
+        iterator
+
+        index based api:
+    }
+
+    managed_storage"stable id's could have custom data"
+    {
+        poll()
+        bool"available" next_poll_event()
+        iterator
+
+        id based api:
+    }
+)

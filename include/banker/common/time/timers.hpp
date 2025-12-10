@@ -56,11 +56,11 @@ namespace banker::time
             log = do_log;
         }
 
-        unsigned long long ms()
+        unsigned long long ms() const
         {
             const auto end_time = std::chrono::high_resolution_clock::now();
             const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-            return duration.count();
+            return static_cast<unsigned long long>(duration.count());
         }
     };
 }

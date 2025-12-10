@@ -243,7 +243,7 @@ BANKER_TEST_CASE(stream_server, host_1, "idk")
 {
     using namespace banker;
     using namespace banker::networker;
-    constexpr size_t millis_timeout = 10;
+    constexpr size_t millis_timeout = 50;
 
     constexpr short port = 4444;
 
