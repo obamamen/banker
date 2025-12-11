@@ -15,6 +15,7 @@
 
 #include "banker/common/debugging/debugger.hpp"
 #include "banker/core/networker/core/socket/socket.hpp"
+#include "banker/shared/program_macros.hpp"
 
 namespace banker::networker
 {

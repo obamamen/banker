@@ -24,7 +24,7 @@ namespace banker::networker::tcp
     {
         assert(socket.is_valid());
 
-        uint8_t local_buffer[ 4096*4 ];
+        uint8_t local_buffer[ 1024*8 ];
         int bytes = socket.recv(local_buffer, sizeof(local_buffer));
         while (bytes > 0)
         {
