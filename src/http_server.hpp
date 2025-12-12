@@ -381,7 +381,8 @@ inline std::string http_process(const std::string& input)
 {
     banker::networker::stream_socket::acceptor server("0.0.0.0", 0);
     uint16_t port = server.raw_socket().get_local_info().port;
-    std::cout << "open on port: " << port << std::endl;
+    std::cout << "open on: http://127.0.0.1" << ":" << port << std::endl;
+
     std::list<banker::networker::stream_socket> clients;
     while (true)
     {
