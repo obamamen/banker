@@ -43,41 +43,43 @@ namespace banker::networker
             _buffer = std::vector(data, data + size);
         }
 
-        BANKER_NODISCARD uint8_t* data() const
+        BANKER_NODISCARD uint8_t* data(const size_t offset) const
         {
-            return const_cast<uint8_t *>(_buffer.data() + _offset);
+            return const_cast<uint8_t *>(_buffer.data() + offset);
         }
 
-        BANKER_NODISCARD size_t size() const
+        BANKER_NODISCARD socket::iovec_c to_iovec(const size_t offset) const
         {
-            return _buffer.size() - _offset;
+            return socket::iovec_c{
+                data(offset),
+                size(offset)};
         }
 
-        BANKER_NODISCARD size_t consume(const size_t bytes)
+        BANKER_NODISCARD size_t size(const size_t offset) const
         {
-            const auto available = size();
+            return _buffer.size() - offset;
+        }
+
+        BANKER_NODISCARD size_t consume(
+            const size_t bytes,
+            size_t& offset) const
+        {
+            const auto available = size(offset);
 
             if (bytes <= available)
             {
-                _offset += bytes;
+                offset += bytes;
                 return 0;
             }
             else
             {
-                _offset += available;
-                _offset = std::min(_offset, available);
+                offset += available;
                 return bytes - available;
             }
         }
 
-        BANKER_NODISCARD bool empty() const
-        {
-            return size() == 0;
-        }
-
     private:
         std::vector<uint8_t> _buffer{};
-        size_t _offset{0};
     };
 }
 

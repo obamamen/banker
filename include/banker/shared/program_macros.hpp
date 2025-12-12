@@ -8,6 +8,8 @@
 #ifndef BANKER_PROGRAM_MACROS_HPP
 #define BANKER_PROGRAM_MACROS_HPP
 
+#define BANKER_SAFE(out) if ( (out != nullptr) ) (*out)
+
 #ifdef NDEBUG
 #define BANKER_DEBUG_DO(...) do {} while(0)
 #else

@@ -13,6 +13,7 @@
 
 #include "error.hpp"
 #include "banker/debug_inspector.hpp"
+#include "banker/shared/compat.hpp"
 
 #ifdef _WIN32
     #include <winsock2.h> // core socket handler.
@@ -463,6 +464,60 @@ namespace banker::networker
             if (!_extract_info_from_addr(addr, info)) return {};
 
             return info;
+        }
+
+        BANKER_NODISCARD bool is_readable(const int timeout_ms = 0) const
+        {
+            if (!is_valid()) return false;
+
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            FD_SET(_socket, &read_fds);
+
+            timeval tv{};
+            tv.tv_sec = timeout_ms / 1000;
+            tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+            const int res = ::select(
+                static_cast<int>(_socket + 1),
+                &read_fds,
+                nullptr,
+                nullptr,
+                timeout_ms >= 0 ? &tv : nullptr);
+
+#ifdef _WIN32
+            if (res == SOCKET_ERROR) return false;
+#else
+            if (res < 0) return false;
+#endif
+
+            return FD_ISSET(_socket, &read_fds) != 0;
+        }
+
+        BANKER_NODISCARD bool is_writable(const int timeout_ms = 0) const
+        {
+            fd_set write_fds;
+            FD_ZERO(&write_fds);
+            FD_SET(_socket, &write_fds);
+
+            timeval tv{};
+            tv.tv_sec = timeout_ms / 1000;
+            tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+            const int res = ::select(
+                static_cast<int>(_socket + 1),
+                nullptr,
+                &write_fds,
+                nullptr,
+                timeout_ms >= 0 ? &tv : nullptr);
+
+#ifdef _WIN32
+            if (res == SOCKET_ERROR) return false;
+#else
+            if (res < 0) return false;
+#endif
+
+            return FD_ISSET(_socket, &write_fds) != 0;
         }
 
     private:
