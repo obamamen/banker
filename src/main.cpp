@@ -2,6 +2,9 @@
 #include <iostream>
 #include <list>
 #include <thread>
+#include <filesystem>
+#include <sstream>
+#include <iomanip>
 
 #include "banker/banker.hpp"
 #include "banker/common/formatting/time.hpp"
@@ -24,14 +27,15 @@
 #include "banker/tests/packet_tests.hpp"
 #include "banker/tests/robin_hash_tests.hpp"
 
-using namespace banker;
+#include "http_server.hpp"
 
-void log_char_vector(
-    const std::vector<uint8_t>& vec)
+using namespace banker;
+namespace fs = std::filesystem;
+
+void log_char_vector(const std::vector<uint8_t>& vec)
 {
     for (const auto& i : vec) std::cout << static_cast<char>(i);
 }
-
 
 void server()
 {
@@ -56,7 +60,6 @@ void server()
                 it = clients.erase(it);
                 continue;
             }
-
             if (r != 0)
             {
                 std::cout << "[server] client("<<&it<<") : ";
@@ -68,7 +71,7 @@ void server()
     }
 }
 
-void client()
+[[noreturn]] void client()
 {
     networker::stream_socket client("127.0.0.1",8080);
     std::string msg = "Hello Server!";
@@ -87,6 +90,8 @@ int main()
     server();
 #elif defined(BUILD_TESTS)
     tester::run_test(true);
+#elif defined(BUILD_HTTP_FILE_SERVER)
+    http_server(false);
 #else
     std::cerr << "Unknown mode\n";
     return 1;
