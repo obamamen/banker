@@ -14,6 +14,7 @@
 
 #include "banker/core/networker/core/socket/socket.hpp"
 #include "banker/core/networker/core/stream_socket/stream_transmit_buffer.hpp"
+#include "banker/core/networker/core/tcp/tcp_operations.hpp"
 
 namespace banker::networker
 {
@@ -29,13 +30,6 @@ namespace banker::networker
         {
             std::deque<stream_transmit_buffer>  out_buffers{};
             size_t                              offset{0};
-        };
-
-        enum class request_result : uint8_t
-        {
-            ok,
-            graceful_close,
-            error
         };
 
         static socket new_client_socket(
@@ -97,10 +91,10 @@ namespace banker::networker
         static size_t receive(
             socket& socket,
             receive_state& state,
-            request_result* request_result = nullptr,
+            tcp::request_result* request_result = nullptr,
             const size_t byte_limit = group_byte_limit)
         {
-            BANKER_SAFE(request_result) = request_result::ok;
+            BANKER_SAFE(request_result) = tcp::request_result::ok;
 
             size_t bytes_received = 0;
             uint8_t stack_buffer[ group_byte_limit ];
@@ -122,12 +116,12 @@ namespace banker::networker
                 if (get_last_socket_error() == socket_error_code::would_block)
                     return bytes_received;
 
-                BANKER_SAFE(request_result) = request_result::error;
+                BANKER_SAFE(request_result) = tcp::request_result::error;
             }
 
             if (bytes == 0)
             {
-                BANKER_SAFE(request_result) = request_result::graceful_close;
+                BANKER_SAFE(request_result) = tcp::request_result::graceful_close;
             }
 
             return bytes_received;
@@ -136,9 +130,9 @@ namespace banker::networker
         static size_t flush_out_buffer(
             socket& socket,
             send_state& state,
-            request_result* request_result = nullptr)
+            tcp::request_result* request_result = nullptr)
         {
-            BANKER_SAFE(request_result) = request_result::ok;
+            BANKER_SAFE(request_result) = tcp::request_result::ok;
 
             if (state.out_buffers.empty())
                 return 0;
@@ -158,7 +152,7 @@ namespace banker::networker
 
                 state.out_buffers.clear();
                 state.offset = 0;
-                BANKER_SAFE(request_result) = request_result::error;
+                BANKER_SAFE(request_result) = tcp::request_result::error;
                 return 0;
             }
 
@@ -166,7 +160,7 @@ namespace banker::networker
             {
                 state.out_buffers.clear();
                 state.offset = 0;
-                BANKER_SAFE(request_result) = request_result::graceful_close;
+                BANKER_SAFE(request_result) = tcp::request_result::graceful_close;
             }
 
             auto remaining = static_cast<size_t>(bytes);

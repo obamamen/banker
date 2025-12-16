@@ -33,7 +33,9 @@ namespace banker::networker
     public:
         void reserve(const size_t size)
         {
+#ifdef _WIN32
             _fds.reserve(size);
+#endif
         }
 
         void add(const socket& socket)

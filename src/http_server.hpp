@@ -399,7 +399,7 @@ inline std::string http_process(const std::string& input)
         for (auto it = clients.begin(); it != clients.end(); )
         {
             auto& client = *it;
-            banker::networker::stream_socket_core::request_result result;
+            banker::networker::tcp::request_result result;
             auto r = client.tick(true, true, &result);
             auto& buf = client.receive();
             auto pos = std::search(buf.begin(), buf.end(), "\r\n\r\n", "\r\n\r\n"+4);
@@ -411,7 +411,7 @@ inline std::string http_process(const std::string& input)
                 std::string response = http_process(request);
                 client.enqueue({response.begin(), response.end()});
             }
-            if (result != banker::networker::stream_socket_core::request_result::ok)
+            if (result != banker::networker::tcp::request_result::ok)
             {
                 if (log) std::cout << "[SERVER] client("<<client.raw_socket().to_fd()<<") disconnected." << std::endl;
                 it = clients.erase(it);

@@ -16,7 +16,7 @@
 #include "banker/core/crypto/crypter.hpp"
 
 #include "banker/core/networker/core/packet/packet.hpp"
-#include "banker/core/networker/core/tcp/stream_core.hpp"
+#include "../old/tcp/stream_core.hpp"
 #include "../old/crypto/crypto_channel_core.hpp"
 #include "banker/core/networker/core/stream_socket/stream_socket.hpp"
 #include "banker/core/networker/core/stream_socket/stream_socket_core.hpp"
@@ -52,9 +52,9 @@ void server()
         for (auto it = clients.begin(); it != clients.end(); )
         {
             auto& client = *it;
-            networker::stream_socket_core::request_result result;
+            banker::networker::tcp::request_result result;
             const auto r = client.tick(true, false, &result);
-            if (result != networker::stream_socket_core::request_result::ok)
+            if (result != banker::networker::tcp::request_result::ok)
             {
                 std::cout << "[server] client disconnected\n";
                 it = clients.erase(it);

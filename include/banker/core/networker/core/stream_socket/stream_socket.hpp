@@ -70,21 +70,21 @@ namespace banker::networker
         size_t tick(
             const bool readable = true,
             const bool writable = true,
-            stream_socket_core::request_result* result = nullptr)
+            tcp::request_result* result = nullptr)
         {
-            stream_socket_core::request_result local_result;
+            tcp::request_result local_result;
             size_t new_data = 0;
             if ( readable )
             {
                 new_data =
                     stream_socket_core::receive(_socket,_receive_state, &local_result);
-                if (local_result != stream_socket_core::request_result::ok)
+                if (local_result != tcp::request_result::ok)
                     goto stream_socket_tick_return;
             }
             if ( writable )
             {
                 stream_socket_core::flush_out_buffer(_socket,_send_state, &local_result);
-                if (local_result != stream_socket_core::request_result::ok)
+                if (local_result != tcp::request_result::ok)
                     goto stream_socket_tick_return;
             }
 
