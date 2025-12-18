@@ -28,6 +28,7 @@
 #include "banker/tests/robin_hash_tests.hpp"
 
 #include "http_server.hpp"
+#include "banker/core/networker/core/socket/polling.hpp"
 
 using namespace banker;
 namespace fs = std::filesystem;
@@ -71,14 +72,49 @@ void server()
     }
 }
 
-[[noreturn]] void client()
+void client()
 {
     networker::stream_socket client("127.0.0.1",8080);
-    std::string msg = "Hello Server!";
-    client.enqueue({msg.begin(), msg.end()});
+    std::string msgs[] = {
+        "Hello server",
+        "EXIT"
+    };
+
+    for (auto & msg : msgs)
+    {
+        client.enqueue({msg.begin(), msg.end()});
+    }
+
+    networker::poll_group pg{};
+    pg.add(client.raw_socket());
+
     while (true)
     {
-        if (client.raw_socket().is_writable()) client.tick(false,true);
+        pg.poll(200);
+        networker::poll_group::result result;
+        if ( pg.next_result(result) == -1 )
+        {
+            std::cout << "[client] error happened (no poll result)\n";
+            break;
+        }
+
+        if (result.error)
+        {
+            std::cout << "[client] error happened (poll result has error)\n";
+            break;
+        }
+
+        if (result.disconnected)
+        {
+            std::cout << "[client] server closed.\n";
+            break;
+        }
+
+        if (result.writable)
+        {
+            client.tick(false, true);
+            std::cout << "[client] client ticked\n";
+        }
     }
 }
 

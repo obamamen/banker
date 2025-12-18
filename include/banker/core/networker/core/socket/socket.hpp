@@ -520,6 +520,32 @@ namespace banker::networker
             return FD_ISSET(_socket, &write_fds) != 0;
         }
 
+        BANKER_NODISCARD bool has_error(const int timeout_ms = 0) const
+        {
+            fd_set error_fds;
+            FD_ZERO(&error_fds);
+            FD_SET(_socket, &error_fds);
+
+            timeval tv{};
+            tv.tv_sec = timeout_ms / 1000;
+            tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+            const int res = ::select(
+                static_cast<int>(_socket + 1),
+                nullptr,
+                nullptr,
+                &error_fds,
+                timeout_ms >= 0 ? &tv : nullptr);
+
+#ifdef _WIN32
+            if (res == SOCKET_ERROR) return false;
+#else
+            if (res < 0) return false;
+#endif
+
+            return FD_ISSET(_socket, &error_fds) == 0;
+        }
+
     private:
         socket_t _socket{ socket::invalid_socket };
         int _domain{ AF_INET };
